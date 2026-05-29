@@ -182,7 +182,7 @@ export default function StudentPage() {
     } catch { /* ignore */ }
   }, []);
 
-  useEffect(() => { try { localStorage.setItem("sk_saved", JSON.stringify([...saved])); } catch { /* ignore */ } }, [saved]);
+  useEffect(() => { try { localStorage.setItem("sk_saved", JSON.stringify(Array.from(saved))); } catch { /* ignore */ } }, [saved]);
   useEffect(() => { try { localStorage.setItem("sk_apps",  JSON.stringify(apps));       } catch { /* ignore */ } }, [apps]);
 
   useEffect(() => {
