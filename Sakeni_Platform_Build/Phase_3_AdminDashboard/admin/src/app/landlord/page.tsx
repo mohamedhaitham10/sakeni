@@ -126,7 +126,7 @@ const INIT_APPLICANTS: Applicant[] = [
 ];
 
 const EMPTY_FORM = {
-  name:"", city:"", district:"", price:"", sqft:"", beds:"1", baths:"1",
+  name:"", city:"Cairo", district:"", price:"", sqft:"", beds:"1", baths:"1",
   description:"", status:"underReview" as Status, photosRaw:"",
 };
 
@@ -538,7 +538,17 @@ export default function LandlordPage() {
         <div className="space-y-3">
           <FormField label={t.titleLabel}    name="name"       placeholder="e.g. Studio – Dokki, Giza"/>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={t.cityLabel}     name="city"       placeholder="Cairo"/>
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.cityLabel}</label>
+              <select
+                value={form.city}
+                onChange={e => { setForm(f => ({ ...f, city: e.target.value })); }}
+                className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500/40 transition-all text-white"
+              >
+                <option value="Cairo">Cairo</option>
+                <option value="Giza">Giza</option>
+              </select>
+            </div>
             <FormField label={t.districtLabel} name="district"   placeholder="Zamalek"/>
           </div>
           <div className="grid grid-cols-2 gap-3">

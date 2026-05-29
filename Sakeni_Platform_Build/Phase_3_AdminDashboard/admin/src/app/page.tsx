@@ -63,17 +63,6 @@ const ACTIVITY = [
   {u:"Youssef S.", m:10},
 ];
 
-const SIGNUPS = [
-  {name:"Ahmed Hassan",  type:"student",  city:"Cairo",      joined:"May 11", status:"verified"},
-  {name:"Sara Mohamed",  type:"landlord", city:"Giza",       joined:"May 11", status:"verified"},
-  {name:"Omar Khalil",   type:"student",  city:"Alexandria", joined:"May 10", status:"pending" },
-  {name:"Nour Ahmed",    type:"student",  city:"Cairo",      joined:"May 10", status:"verified"},
-  {name:"Youssef Samir", type:"landlord", city:"Cairo",      joined:"May 09", status:"verified"},
-  {name:"Laila Ibrahim", type:"student",  city:"Giza",       joined:"May 09", status:"pending" },
-  {name:"Karim Mostafa", type:"landlord", city:"Cairo",      joined:"May 08", status:"verified"},
-  {name:"Rana Adel",     type:"student",  city:"Cairo",      joined:"May 08", status:"verified"},
-];
-
 /* ─── Sub-components (module-level to avoid parser issues) ─ */
 function Field({label, value}: {label:string; value:string}) {
   return (
@@ -84,11 +73,28 @@ function Field({label, value}: {label:string; value:string}) {
   );
 }
 
+interface PlatformUser {
+  id: string;
+  name: string;
+  type: string;
+  city: string;
+  joined: string;
+  status: "verified" | "pending" | "rejected";
+  nationalId?: string;
+  birthdate?: string;
+  gender?: string;
+  governorate?: string;
+  email?: string;
+  isDynamic?: boolean;
+  dynamicRole?: "student" | "landlord";
+}
+
 /* ─── Page ──────────────────────────────────────────────── */
 export default function AdminPage() {
   const [locale, setLocale] = useState<Locale>("en");
   const [modal,  setModal]  = useState<{title:string; body:React.ReactNode}|null>(null);
   const [toast,  setToast]  = useState("");
+  const [users,  setUsers]  = useState<PlatformUser[]>([]);
 
   useEffect(() => {
     setLocale((document.documentElement.lang as Locale) || "en");
@@ -97,6 +103,93 @@ export default function AdminPage() {
   const t    = T[locale];
   const close     = () => setModal(null);
   const showToast = (msg:string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
+
+  const loadUsers = () => {
+    const initialSignups = [
+      { id: "1", name: "Ahmed Hassan", type: "student", city: "Cairo", joined: "May 11", status: "verified", nationalId: "29901011234567", birthdate: "1999-01-01", gender: "Male", governorate: "Cairo", email: "ahmed@sakeni.eg" },
+      { id: "2", name: "Sara Mohamed", type: "landlord", city: "Giza", joined: "May 11", status: "verified", nationalId: "28503152123456", birthdate: "1985-03-15", gender: "Female", governorate: "Giza", email: "sara@sakeni.eg" },
+      { id: "3", name: "Omar Khalil", type: "student", city: "Cairo", joined: "May 10", status: "pending", nationalId: "29809210123456", birthdate: "1998-09-21", gender: "Male", governorate: "Cairo", email: "omar@sakeni.eg" },
+      { id: "4", name: "Nour Ahmed", type: "student", city: "Cairo", joined: "May 10", status: "verified", nationalId: "29912040123456", birthdate: "1999-12-04", gender: "Female", governorate: "Cairo", email: "nour@sakeni.eg" },
+      { id: "5", name: "Youssef Samir", type: "landlord", city: "Cairo", joined: "May 09", status: "verified", nationalId: "27708090123456", birthdate: "1977-08-09", gender: "Male", governorate: "Cairo", email: "youssef@sakeni.eg" },
+      { id: "6", name: "Laila Ibrahim", type: "student", city: "Giza", joined: "May 09", status: "pending", nationalId: "29907152123456", birthdate: "1999-07-15", gender: "Female", governorate: "Giza", email: "laila@sakeni.eg" },
+      { id: "7", name: "Karim Mostafa", type: "landlord", city: "Cairo", joined: "May 08", status: "verified", nationalId: "27304120123456", birthdate: "1973-04-12", gender: "Male", governorate: "Cairo", email: "karim@sakeni.eg" },
+      { id: "8", name: "Rana Adel", type: "student", city: "Cairo", joined: "May 08", status: "verified", nationalId: "29811050123456", birthdate: "1998-11-05", gender: "Female", governorate: "Cairo", email: "rana@sakeni.eg" },
+    ];
+
+    const savedStatic = localStorage.getItem("sk_admin_users");
+    let currentUsers = savedStatic ? JSON.parse(savedStatic) : initialSignups;
+
+    const dynamicStudent = localStorage.getItem("sk_auth_student");
+    if (dynamicStudent) {
+      const parsed = JSON.parse(dynamicStudent);
+      currentUsers = currentUsers.filter((u: PlatformUser) => u.email !== parsed.email);
+      currentUsers.unshift({
+        id: "dynamic_student",
+        name: parsed.name,
+        type: parsed.role,
+        city: parsed.city || parsed.governorate || "Cairo",
+        joined: "Just Now",
+        status: parsed.kycStatus,
+        nationalId: parsed.nationalId,
+        birthdate: parsed.birthdate || "1999-01-01",
+        gender: parsed.gender || "Male",
+        governorate: parsed.governorate || "Cairo",
+        email: parsed.email,
+        isDynamic: true,
+        dynamicRole: "student"
+      });
+    }
+
+    const dynamicLandlord = localStorage.getItem("sk_auth_landlord");
+    if (dynamicLandlord) {
+      const parsed = JSON.parse(dynamicLandlord);
+      currentUsers = currentUsers.filter((u: PlatformUser) => u.email !== parsed.email);
+      currentUsers.unshift({
+        id: "dynamic_landlord",
+        name: parsed.name,
+        type: parsed.role,
+        city: parsed.city || parsed.governorate || "Cairo",
+        joined: "Just Now",
+        status: parsed.kycStatus,
+        nationalId: parsed.nationalId,
+        birthdate: parsed.birthdate || "1978-05-15",
+        gender: parsed.gender || "Male",
+        governorate: parsed.governorate || "Cairo",
+        email: parsed.email,
+        isDynamic: true,
+        dynamicRole: "landlord"
+      });
+    }
+
+    setUsers(currentUsers);
+  };
+
+  useEffect(() => {
+    loadUsers();
+  }, []);
+
+  const handleModerate = (userId: string, newStatus: "verified" | "rejected" | "pending") => {
+    const updated = users.map(u => {
+      if (u.id === userId) {
+        if (u.isDynamic) {
+          const authKey = `sk_auth_${u.dynamicRole}`;
+          const currentAuth = localStorage.getItem(authKey);
+          if (currentAuth) {
+            const parsed = JSON.parse(currentAuth);
+            parsed.kycStatus = newStatus;
+            localStorage.setItem(authKey, JSON.stringify(parsed));
+          }
+        }
+        return { ...u, status: newStatus };
+      }
+      return u;
+    });
+
+    setUsers(updated);
+    localStorage.setItem("sk_admin_users", JSON.stringify(updated));
+    showToast(`User status updated to ${newStatus} ✓`);
+    close();
+  };
 
   /* modal bodies */
   const openReport = () => setModal({
@@ -149,15 +242,48 @@ export default function AdminPage() {
     ),
   });
 
-  const openSignup = (s: typeof SIGNUPS[number]) => setModal({
-    title: s.name,
+  const openSignup = (u: PlatformUser) => setModal({
+    title: u.name,
     body: (
-      <div className="text-sm space-y-1">
-        <Field label={t.colType}   value={s.type === "student" ? t.student : t.landlord}/>
-        <Field label={t.colCity}   value={s.city}/>
-        <Field label={t.colJoined} value={s.joined}/>
-        <Field label={t.colStatus} value={s.status === "verified" ? t.verified : t.pending}/>
-        <Field label="Email"       value={`${s.name.split(" ")[0].toLowerCase()}@sakeni.eg`}/>
+      <div className="text-sm space-y-4">
+        <div className="space-y-0.5">
+          <Field label={t.colType}   value={u.type === "student" ? t.student : t.landlord}/>
+          <Field label={t.colCity}   value={u.city}/>
+          <Field label={t.colJoined} value={u.joined}/>
+          <Field label={t.colStatus} value={u.status === "verified" ? t.verified : u.status === "rejected" ? "Rejected" : t.pending}/>
+          <Field label="Email"       value={u.email || `${u.name.split(" ")[0].toLowerCase()}@sakeni.eg`}/>
+          <Field label="National ID" value={u.nationalId || "N/A"}/>
+          <Field label="Birth Date"  value={u.birthdate || "N/A"}/>
+          <Field label="Gender"      value={u.gender || "N/A"}/>
+          <Field label="Governorate" value={u.governorate || "N/A"}/>
+        </div>
+        
+        <div className="flex gap-3 pt-2">
+          {u.status !== "verified" && (
+            <button
+              onClick={() => handleModerate(u.id, "verified")}
+              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-semibold transition-all text-xs"
+            >
+              Approve KYC
+            </button>
+          )}
+          {u.status !== "rejected" && (
+            <button
+              onClick={() => handleModerate(u.id, "rejected")}
+              className="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-semibold transition-all text-xs border border-rose-500/20"
+            >
+              Reject KYC
+            </button>
+          )}
+          {u.status !== "pending" && (
+            <button
+              onClick={() => handleModerate(u.id, "pending")}
+              className="flex-1 bg-white/6 hover:bg-white/10 text-white py-2.5 rounded-xl font-semibold transition-all text-xs border border-white/10"
+            >
+              Reset to Pending
+            </button>
+          )}
+        </div>
       </div>
     ),
   });
@@ -419,19 +545,20 @@ export default function AdminPage() {
                     <th className="text-start pb-2.5 font-medium hidden sm:table-cell">{t.colCity}</th>
                     <th className="text-start pb-2.5 font-medium hidden md:table-cell">{t.colJoined}</th>
                     <th className="text-start pb-2.5 font-medium">{t.colStatus}</th>
+                    <th className="text-start pb-2.5 font-medium">Actions</th>
                   </tr>
                 </thead>
                 <tbody>
-                  {SIGNUPS.map((s, i) => (
+                  {users.map((s, i) => (
                     <tr
-                      key={i}
+                      key={s.id || i}
                       className="border-b border-white/4 hover:bg-white/4 cursor-pointer transition-colors last:border-none"
                       onClick={() => openSignup(s)}
                     >
                       <td className="py-2.5 pr-3">
                         <div className="flex items-center gap-2">
                           <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold shrink-0 ${s.type==="student" ? "bg-emerald-500/20 text-emerald-400" : "bg-amber-500/20 text-amber-400"}`}>
-                            {s.name.split(" ").map(n=>n[0]).join("").slice(0,2)}
+                            {s.name.split(" ").map((n: string)=>n[0]).join("").slice(0,2)}
                           </div>
                           <span className="font-medium text-xs truncate max-w-[90px]">{s.name}</span>
                         </div>
@@ -443,10 +570,37 @@ export default function AdminPage() {
                       </td>
                       <td className="py-2.5 pr-3 text-xs text-muted-foreground hidden sm:table-cell">{s.city}</td>
                       <td className="py-2.5 pr-3 text-xs text-muted-foreground hidden md:table-cell">{s.joined}</td>
-                      <td className="py-2.5">
-                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${s.status==="verified" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}>
-                          {s.status==="verified" ? t.verified : t.pending}
+                      <td className="py-2.5 pr-3">
+                        <span className={`text-[10px] px-2 py-0.5 rounded-full border ${s.status==="verified" ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20" : s.status === "rejected" ? "bg-rose-500/10 text-rose-400 border-rose-500/20" : "bg-amber-500/10 text-amber-400 border-amber-500/20"}`}>
+                          {s.status==="verified" ? t.verified : s.status === "rejected" ? "Rejected" : t.pending}
                         </span>
+                      </td>
+                      <td className="py-2.5">
+                        <div className="flex gap-1.5" onClick={e => e.stopPropagation()}>
+                          {s.status === "pending" ? (
+                            <>
+                              <button
+                                onClick={() => handleModerate(s.id, "verified")}
+                                className="bg-emerald-600 hover:bg-emerald-500 text-white px-2 py-1 rounded text-[10px] font-semibold transition-all"
+                              >
+                                Approve
+                              </button>
+                              <button
+                                onClick={() => handleModerate(s.id, "rejected")}
+                                className="bg-rose-600 hover:bg-rose-500 text-white px-2 py-1 rounded text-[10px] font-semibold transition-all"
+                              >
+                                Reject
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => handleModerate(s.id, "pending")}
+                              className="bg-white/8 hover:bg-white/12 text-white px-2 py-1 rounded text-[10px] border border-white/10 transition-all"
+                            >
+                              Reset
+                            </button>
+                          )}
+                        </div>
                       </td>
                     </tr>
                   ))}

@@ -16,8 +16,11 @@ export interface AuthUser {
   city?: string;
   propertyType?: string;
   nationalId: string;
-  kycStatus: "verified" | "pending";
+  kycStatus: "verified" | "pending" | "rejected";
   avatar: string;
+  birthdate?: string;
+  gender?: string;
+  governorate?: string;
 }
 
 const STORAGE_KEY = (role: AuthRole) => `sk_auth_${role}`;
@@ -45,7 +48,7 @@ const DEMO_ACCOUNTS: Record<AuthRole, { email: string; password: string; user: A
       name: "Ahmed Hassan", email: "student@sakeni.eg", phone: "01012345678",
       role: "student", university: "Cairo University", studentId: "CS-2021-0042",
       year: "3rd Year", nationalId: "29901011234567", kycStatus: "verified",
-      avatar: "AH",
+      avatar: "AH", birthdate: "1999-01-01", gender: "Male", governorate: "Cairo"
     },
   },
   landlord: {
@@ -55,7 +58,7 @@ const DEMO_ACCOUNTS: Record<AuthRole, { email: string; password: string; user: A
       name: "Mohamed Ali", email: "landlord@sakeni.eg", phone: "01198765432",
       role: "landlord", city: "Cairo", propertyType: "Apartments",
       nationalId: "27805151234567", kycStatus: "verified",
-      avatar: "MA",
+      avatar: "MA", birthdate: "1978-05-15", gender: "Male", governorate: "Cairo"
     },
   },
 };
@@ -68,6 +71,93 @@ const EGYPTIAN_UNIVERSITIES = [
   "Misr International University (MIU)", "Modern Sciences & Arts University (MSA)",
   "Future University in Egypt (FUE)", "October University (MUST)",
 ];
+
+const GOVERNORATES: Record<string, string> = {
+  "01": "Cairo",
+  "02": "Alexandria",
+  "03": "Port Said",
+  "04": "Suez",
+  "11": "Damietta",
+  "12": "Dakahlia",
+  "13": "Sharkia",
+  "14": "Qalyubia",
+  "15": "Kafr El Sheikh",
+  "16": "Gharbia",
+  "17": "Monufia",
+  "18": "Beheira",
+  "19": "Ismailia",
+  "21": "Giza",
+  "22": "Beni Suef",
+  "23": "Faiyum",
+  "24": "Minya",
+  "25": "Asyut",
+  "26": "Sohag",
+  "27": "Qena",
+  "28": "Aswan",
+  "29": "Luxor",
+  "31": "Red Sea",
+  "32": "New Valley",
+  "33": "Matrouh",
+  "34": "North Sinai",
+  "35": "South Sinai",
+  "88": "Outside Egypt",
+};
+
+export interface ParsedID {
+  isValid: boolean;
+  birthdate?: string;
+  governorate?: string;
+  gender?: "Male" | "Female";
+  error?: string;
+}
+
+export function parseEgyptianNationalID(id: string): ParsedID {
+  if (!id) return { isValid: false };
+  if (id.length !== 14) return { isValid: false, error: "Must be exactly 14 digits." };
+  if (!/^\d+$/.test(id)) return { isValid: false, error: "Must contain only digits." };
+
+  const centuryDigit = id[0];
+  if (centuryDigit !== "2" && centuryDigit !== "3") {
+    return { isValid: false, error: "First digit must be 2 (born 1900-1999) or 3 (born 2000-2099)." };
+  }
+
+  const century = centuryDigit === "2" ? "19" : "20";
+  const yy = id.slice(1, 3);
+  const mm = id.slice(3, 5);
+  const dd = id.slice(5, 7);
+
+  const year = parseInt(century + yy, 10);
+  const month = parseInt(mm, 10);
+  const day = parseInt(dd, 10);
+
+  if (month < 1 || month > 12) {
+    return { isValid: false, error: "Invalid birth month." };
+  }
+  
+  const daysInMonth = new Date(year, month, 0).getDate();
+  if (day < 1 || day > daysInMonth) {
+    return { isValid: false, error: "Invalid birth day." };
+  }
+
+  const govCode = id.slice(7, 9);
+  const governorate = GOVERNORATES[govCode];
+  if (!governorate) {
+    return { isValid: false, error: "Invalid governorate code." };
+  }
+  if (govCode !== "01" && govCode !== "21") {
+    return { isValid: false, error: "Currently only Cairo (01) & Giza (21) governorates are supported." };
+  }
+
+  const genderDigit = parseInt(id[12], 10);
+  const gender = genderDigit % 2 === 0 ? "Female" : "Male";
+
+  return {
+    isValid: true,
+    birthdate: `${year}-${mm}-${dd}`,
+    governorate,
+    gender,
+  };
+}
 
 interface Props {
   role: AuthRole;
@@ -161,8 +251,10 @@ export function KYCModal({ role, onAuth }: Props) {
   }
 
   function handleSignUpStep3() {
-    if (!form.nationalId.trim() || form.nationalId.length < 14) {
-      setError("Enter a valid 14-digit National ID."); return;
+    const parserResult = parseEgyptianNationalID(form.nationalId);
+    if (!parserResult.isValid) {
+      setError(parserResult.error || "Enter a valid 14-digit National ID.");
+      return;
     }
     if (!idUploaded) { setError("Please upload your ID document."); return; }
 
@@ -180,6 +272,9 @@ export function KYCModal({ role, onAuth }: Props) {
         nationalId: form.nationalId.trim(),
         kycStatus: "pending",
         avatar: initials || roleLabel[0],
+        birthdate: parserResult.birthdate,
+        gender: parserResult.gender,
+        governorate: parserResult.governorate,
       };
       setAuth(role, user);
       setLoading(false);
@@ -352,7 +447,7 @@ export function KYCModal({ role, onAuth }: Props) {
                         <label className={labelCls}>City</label>
                         <select className={inputCls} value={form.city} onChange={e => set("city", e.target.value)}>
                           <option value="">Select city</option>
-                          {["Cairo", "Alexandria", "Giza", "Mansoura", "Assiut", "Tanta", "Zagazig", "Port Said"].map(c => <option key={c} value={c}>{c}</option>)}
+                          {["Cairo", "Giza"].map(c => <option key={c} value={c}>{c}</option>)}
                         </select>
                       </div>
                       <div className="space-y-1">
@@ -386,6 +481,63 @@ export function KYCModal({ role, onAuth }: Props) {
                     <input className={inputCls} placeholder="29901011234567" maxLength={14} value={form.nationalId}
                       onChange={e => set("nationalId", e.target.value.replace(/\D/g, ""))} />
                   </div>
+                  {form.nationalId && (
+                    <div className="mt-2 text-xs">
+                      {(() => {
+                        const parsed = parseEgyptianNationalID(form.nationalId);
+                        if (form.nationalId.length < 14) {
+                          return (
+                            <div className="text-white/40 italic">
+                              Waiting for {14 - form.nationalId.length} more digits...
+                            </div>
+                          );
+                        }
+                        if (!parsed.isValid) {
+                          return (
+                            <div className="text-rose-400 font-medium bg-rose-500/10 border border-rose-500/20 rounded-xl p-3">
+                              ✕ {parsed.error}
+                            </div>
+                          );
+                        }
+                        return (
+                          <div className="bg-gradient-to-br from-[#121235] to-[#1a1a45] border border-white/10 rounded-xl p-4 space-y-3 relative overflow-hidden shadow-xl">
+                            {/* Watermark/Decorative element */}
+                            <div className="absolute right-0 bottom-0 text-[100px] text-white/5 font-bold select-none leading-none translate-x-6 translate-y-6">
+                              EGY
+                            </div>
+                            
+                            <div className="flex justify-between items-center border-b border-white/10 pb-2">
+                              <span className="font-bold text-[10px] text-indigo-400 tracking-wider">EGYPTIAN ID DECODER</span>
+                              <span className="text-[10px] px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">Format Verified</span>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-3 relative z-10">
+                              <div>
+                                <span className="block text-[9px] text-white/40">NAME</span>
+                                <span className="font-semibold text-white text-xs truncate block">{form.name || "N/A"}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-white/40">NATIONAL ID</span>
+                                <span className="font-semibold text-white text-xs tracking-wider block">{form.nationalId}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-white/40">BIRTH DATE</span>
+                                <span className="font-semibold text-white text-xs block">{parsed.birthdate}</span>
+                              </div>
+                              <div>
+                                <span className="block text-[9px] text-white/40">GENDER</span>
+                                <span className="font-semibold text-white text-xs block">{parsed.gender}</span>
+                              </div>
+                              <div className="col-span-2">
+                                <span className="block text-[9px] text-white/40">GOVERNORATE OF BIRTH</span>
+                                <span className="font-semibold text-white text-xs block">{parsed.governorate}</span>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+                  )}
                   <div className="space-y-1">
                     <label className={labelCls}>Upload ID Document</label>
                     <input

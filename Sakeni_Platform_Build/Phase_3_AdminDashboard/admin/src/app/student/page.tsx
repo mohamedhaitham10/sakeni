@@ -51,7 +51,7 @@ const LISTINGS: Listing[] = [
   { id:1,  name:{en:"Furnished 2BR – Zamalek",           ar:"شقة مفروشة غرفتين – الزمالك"},    loc:{en:"Cairo, Zamalek",          ar:"القاهرة، الزمالك"},        city:"Cairo",      nearUniversity:"American University in Cairo (AUC)", price:9000,  deposit:18000, beds:2, baths:2, sqft:95,  furnished:true,  utilities:false, gender:"any",    tags:["Furnished","Nile View","Premium"],          accent:"indigo",  photo:"https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=200&fit=crop" },
   { id:2,  name:{en:"Shared Room – Nasr City",           ar:"غرفة مشتركة – مدينة نصر"},        loc:{en:"Cairo, Nasr City",        ar:"القاهرة، مدينة نصر"},      city:"Cairo",      nearUniversity:"Ain Shams University",              price:2200,  deposit:2200,  beds:1, baths:1, sqft:22,  furnished:true,  utilities:true,  gender:"male",   tags:["Male Only","Bills Incl.","Shared"],          accent:"sky",     photo:"https://images.unsplash.com/photo-1540518614846-7eded433c457?w=400&h=200&fit=crop" },
   { id:3,  name:{en:"Modern 1BR – New Cairo",            ar:"شقة حديثة – القاهرة الجديدة"},    loc:{en:"Cairo, New Cairo",        ar:"القاهرة، القاهرة الجديدة"},city:"Cairo",      nearUniversity:"American University in Cairo (AUC)", price:6500,  deposit:6500,  beds:1, baths:1, sqft:70,  furnished:false, utilities:false, gender:"any",    tags:["Near AUC","Parking","New Building"],         accent:"amber",   photo:"https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop" },
-  { id:4,  name:{en:"3BR Family Flat – Alexandria",      ar:"شقة عائلية 3 غرف – الإسكندرية"},  loc:{en:"Alexandria, Sidi Bishr",  ar:"الإسكندرية، سيدي بشر"},    city:"Alexandria", nearUniversity:"Alexandria University",             price:7000,  deposit:7000,  beds:3, baths:2, sqft:130, furnished:false, utilities:false, gender:"any",    tags:["Sea View","Spacious"],                       accent:"blue",    photo:"https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=200&fit=crop" },
+  { id:4,  name:{en:"3BR Family Flat – Giza",      ar:"شقة عائلية 3 غرف – الجيزة"},  loc:{en:"Giza, Mohandessin",  ar:"الجيزة، المهندسين"},    city:"Giza", nearUniversity:"Cairo University",             price:7000,  deposit:7000,  beds:3, baths:2, sqft:130, furnished:false, utilities:false, gender:"any",    tags:["Spacious","Central"],                       accent:"blue",    photo:"https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=200&fit=crop" },
   { id:5,  name:{en:"Cozy Studio – Maadi",               ar:"استوديو مريح – المعادي"},          loc:{en:"Cairo, Maadi",            ar:"القاهرة، المعادي"},        city:"Cairo",      nearUniversity:"German University in Cairo (GUC)",  price:5000,  deposit:5000,  beds:1, baths:1, sqft:45,  furnished:true,  utilities:false, gender:"any",    tags:["Furnished","Quiet Area","Garden"],           accent:"violet",  photo:"https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&h=200&fit=crop" },
   { id:6,  name:{en:"1BR near AUC Campus",               ar:"شقة غرفة قرب الجامعة الأمريكية"}, loc:{en:"Cairo, Fifth Settlement", ar:"القاهرة، التجمع الخامس"},  city:"Cairo",      nearUniversity:"American University in Cairo (AUC)", price:7500,  deposit:7500,  beds:1, baths:1, sqft:65,  furnished:true,  utilities:false, gender:"any",    tags:["Near AUC","Furnished","24/7 Security"],      accent:"rose",    photo:"https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=200&fit=crop" },
   { id:7,  name:{en:"2BR with Nile View – Agouza",       ar:"شقة غرفتين بإطلالة على النيل"},    loc:{en:"Cairo, Agouza",           ar:"القاهرة، العجوزة"},        city:"Cairo",      nearUniversity:"Cairo University",               price:12000, deposit:24000, beds:2, baths:2, sqft:110, furnished:true,  utilities:false, gender:"any",    tags:["Nile View","Furnished","Premium"],           accent:"cyan",    photo:"https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=200&fit=crop" },
@@ -71,7 +71,7 @@ const ACCENT_BG: Record<string, string> = {
 };
 
 const UNIVERSITIES = [
-  "Cairo University","Ain Shams University","Alexandria University",
+  "Cairo University","Ain Shams University",
   "American University in Cairo (AUC)","German University in Cairo (GUC)",
   "Helwan University","Mansoura University","October University (MUST)",
   "Misr International University (MIU)","Future University in Egypt (FUE)",
@@ -455,7 +455,7 @@ export default function StudentPage() {
                 <label className="block text-xs text-muted-foreground mb-1.5 font-medium">{t.cityLabel}</label>
                 <select value={fCity} onChange={e => setFCity(e.target.value)} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all">
                   <option value="">All cities</option>
-                  <option>Cairo</option><option>Giza</option><option>Alexandria</option>
+                  <option>Cairo</option><option>Giza</option>
                 </select>
               </div>
               <div>
