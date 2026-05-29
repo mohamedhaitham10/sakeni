@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr" id="root-html">
+<head>
+<meta charset="UTF-8"/><meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Sakeni Platform</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Cairo:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:4,4,18;--fg:250,250,250;--muted:150,150,172;--indigo:#6366f1;--emerald:#10b981;--amber:#f59e0b;--rose:#f43f5e;--r:.9rem}
+html{background:rgb(var(--bg));color:rgb(var(--fg))}
+body{font-family:'Inter',sans-serif;background:radial-gradient(ellipse at top right,rgba(99,102,241,.12) 0%,transparent 60%),rgb(var(--bg));min-height:100vh;-webkit-font-smoothing:antialiased}
+html[dir=rtl] body{font-family:'Cairo',sans-serif}
+
+/* ── NAV ── */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;display:flex;align-items:center;justify-content:space-between;padding:.65rem 1.4rem;background:rgba(4,4,18,.9);backdrop-filter:blur(24px);border-bottom:1px solid rgba(255,255,255,.07)}
+.tab-group{display:flex;gap:.2rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:.55rem;padding:.2rem}
+.tab{padding:.35rem 1rem;border-radius:.4rem;font-size:.78rem;font-weight:700;cursor:pointer;border:none;background:transparent;color:rgb(var(--muted));transition:all .15s;font-family:inherit}
+.tab:hover{color:#fff}
+.tab.a-admin{background:var(--indigo);color:#fff;box-shadow:0 2px 10px rgba(99,102,241,.4)}
+.tab.a-student{background:var(--emerald);color:#fff;box-shadow:0 2px 10px rgba(16,185,129,.4)}
+.tab.a-rental{background:var(--amber);color:#fff;box-shadow:0 2px 10px rgba(245,158,11,.4)}
+.controls{display:flex;align-items:center;gap:.65rem}
+.lang-sw{display:flex;gap:.15rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:.45rem;padding:.18rem}
+.lbtn{padding:.18rem .6rem;border-radius:.3rem;font-size:.72rem;font-weight:700;cursor:pointer;border:none;background:transparent;color:rgb(var(--muted));transition:all .15s;font-family:'Inter',sans-serif}
+.lbtn:hover{color:#fff}
+.lbtn.active{background:var(--indigo);color:#fff}
+.av{width:2.1rem;height:2.1rem;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:.7rem;color:#fff;cursor:pointer;transition:transform .15s;flex-shrink:0}
+.av:hover{transform:scale(1.08)}
+.av-a{background:linear-gradient(135deg,#6366f1,#a855f7);box-shadow:0 0 0 2px rgba(99,102,241,.4)}
+.av-s{background:linear-gradient(135deg,#10b981,#06b6d4);box-shadow:0 0 0 2px rgba(16,185,129,.4)}
+.av-r{background:linear-gradient(135deg,#f59e0b,#f97316);box-shadow:0 0 0 2px rgba(245,158,11,.4)}
+
+/* ── PAGES ── */
+.page{display:none;padding:4.8rem 1.4rem 3rem;max-width:1080px;margin:0 auto}
+.page.on{display:block;animation:fu .4s ease both}
+@keyframes fu{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── GLASS ── */
+.gc{background:rgba(255,255,255,.04);backdrop-filter:blur(12px);border:1px solid rgba(255,255,255,.08);border-radius:var(--r);transition:background .2s,border-color .2s,transform .2s}
+.gc:hover{background:rgba(255,255,255,.07);border-color:rgba(255,255,255,.13);transform:translateY(-2px)}
+.gc.clickable{cursor:pointer}
+
+/* ── TYPOGRAPHY ── */
+.ptitle{font-size:2rem;font-weight:800;letter-spacing:-.03em;line-height:1.1}
+.psub{font-size:.88rem;color:rgb(var(--muted));margin-top:.35rem}
+.stitle{font-size:1.05rem;font-weight:700;margin-bottom:1.1rem}
+.grad{background:linear-gradient(90deg,#818cf8,#22d3ee);-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+
+/* ── BUTTONS ── */
+.btn{padding:.55rem 1.3rem;border-radius:.5rem;font-size:.82rem;font-weight:700;cursor:pointer;border:none;transition:all .15s;font-family:inherit}
+.bi{background:var(--indigo);color:#fff;box-shadow:0 4px 14px rgba(99,102,241,.3)}
+.bi:hover{background:#818cf8;transform:translateY(-1px)}
+.be{background:var(--emerald);color:#fff;box-shadow:0 4px 14px rgba(16,185,129,.3)}
+.be:hover{background:#34d399;transform:translateY(-1px)}
+.ba{background:var(--amber);color:#fff;box-shadow:0 4px 14px rgba(245,158,11,.3)}
+.ba:hover{background:#fbbf24;transform:translateY(-1px)}
+.bg{background:rgba(255,255,255,.06);color:rgb(var(--muted));border:1px solid rgba(255,255,255,.1)}
+.bg:hover{background:rgba(255,255,255,.1);color:#fff}
+.bsm{padding:.38rem .9rem;font-size:.75rem;border-radius:.4rem;font-weight:600;cursor:pointer;border:none;transition:all .12s;font-family:inherit}
+
+/* ── STATS GRID ── */
+.sg{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:1.1rem;margin-bottom:1.75rem}
+.sc{padding:1.3rem 1.4rem;cursor:pointer}
+.sc-ic{margin-bottom:.7rem}
+.sc-v{font-size:1.65rem;font-weight:800;letter-spacing:-.03em}
+.sc-l{font-size:.73rem;color:rgb(var(--muted));margin-top:.25rem}
+.sc-t{font-size:.68rem;color:rgb(var(--muted));margin-top:.15rem}
+
+/* ── BADGES ── */
+.badge{font-size:.68rem;font-weight:700;padding:.22rem .7rem;border-radius:9999px;border:1px solid}
+.b-em{background:rgba(16,185,129,.15);color:#34d399;border-color:rgba(16,185,129,.3)}
+.b-am{background:rgba(245,158,11,.15);color:#fbbf24;border-color:rgba(245,158,11,.3)}
+.b-ro{background:rgba(244,63,94,.15);color:#fb7185;border-color:rgba(244,63,94,.3)}
+.b-in{background:rgba(99,102,241,.15);color:#818cf8;border-color:rgba(99,102,241,.3)}
+
+/* ── MODAL ── */
+.mo{position:fixed;inset:0;z-index:500;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,.7);backdrop-filter:blur(6px);opacity:0;pointer-events:none;transition:opacity .2s}
+.mo.open{opacity:1;pointer-events:all}
+.mb{background:#0d0d22;border:1px solid rgba(255,255,255,.12);border-radius:1.1rem;width:90%;max-width:520px;max-height:85vh;overflow-y:auto;box-shadow:0 24px 64px rgba(0,0,0,.6);animation:mfade .2s ease}
+@keyframes mfade{from{transform:scale(.96) translateY(8px)}to{transform:scale(1) translateY(0)}}
+.mh{display:flex;justify-content:space-between;align-items:center;padding:1.2rem 1.4rem;border-bottom:1px solid rgba(255,255,255,.07)}
+.mh h3{font-size:1.05rem;font-weight:700}
+.mx{background:none;border:none;color:rgb(var(--muted));font-size:1.2rem;cursor:pointer;line-height:1;padding:.2rem .4rem;border-radius:.3rem;transition:all .15s;font-family:inherit}
+.mx:hover{color:#fff;background:rgba(255,255,255,.08)}
+.mbody{padding:1.4rem}
+
+/* ── FORM ── */
+.fi{width:100%;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:.5rem;padding:.65rem .9rem;font-size:.84rem;color:#fff;outline:none;font-family:inherit;transition:border-color .15s;margin-bottom:.9rem}
+.fi::placeholder{color:rgb(var(--muted))}
+.fi:focus{border-color:rgba(99,102,241,.5)}
+select.fi{cursor:pointer}
+label{display:block;font-size:.76rem;font-weight:600;color:rgb(var(--muted));margin-bottom:.3rem}
+textarea.fi{resize:vertical;min-height:90px}
+.frow{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+
+/* ── TOAST ── */
+.toast{position:fixed;bottom:1.5rem;left:50%;transform:translateX(-50%) translateY(80px);background:#1e1e3a;border:1px solid rgba(255,255,255,.12);color:#fff;padding:.7rem 1.4rem;border-radius:.6rem;font-size:.82rem;font-weight:600;z-index:600;transition:transform .3s ease,opacity .3s ease;opacity:0;white-space:nowrap;box-shadow:0 8px 32px rgba(0,0,0,.4)}
+.toast.show{transform:translateX(-50%) translateY(0);opacity:1}
+
+/* ── BAR CHARTS ── */
+.bchart{display:flex;align-items:flex-end;gap:5px;height:100px;margin-top:.75rem}
+.bar{flex:1;border-radius:3px 3px 0 0;cursor:pointer;transition:opacity .15s,filter .15s;position:relative}
+.bar:hover{opacity:.75;filter:brightness(1.2)}
+.bar-i{background:linear-gradient(to top,rgba(99,102,241,.3),rgba(99,102,241,.85))}
+.bar-a{background:linear-gradient(to top,rgba(245,158,11,.3),rgba(245,158,11,.85))}
+.bar-e{background:linear-gradient(to top,rgba(16,185,129,.3),rgba(16,185,129,.85))}
+.months{display:flex;justify-content:space-between;font-size:.62rem;color:rgb(var(--muted));margin-top:.4rem}
+
+/* ── ADMIN ── */
+.ag{display:grid;grid-template-columns:2fr 1fr;gap:1.25rem;margin-top:1.5rem}
+@media(max-width:780px){.ag{grid-template-columns:1fr}}
+.act-item{display:flex;align-items:center;gap:.9rem;padding:.6rem 0;border-bottom:1px solid rgba(255,255,255,.05);cursor:pointer;border-radius:.3rem;transition:background .15s;padding-inline:.5rem}
+.act-item:hover{background:rgba(255,255,255,.04)}
+.act-item:last-child{border-bottom:none}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--indigo);flex-shrink:0}
+
+/* ── STUDENT ── */
+.hero{padding:2.2rem 1.75rem;text-align:center;background:linear-gradient(135deg,rgba(16,185,129,.08),rgba(6,182,212,.05));border:1px solid rgba(16,185,129,.12);border-radius:var(--r);margin-bottom:1.75rem}
+.sr{display:flex;gap:.65rem;max-width:580px;margin:1.1rem auto .85rem}
+.si{flex:1;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:.5rem;padding:.65rem 1rem;font-size:.83rem;color:#fff;outline:none;font-family:inherit;transition:border-color .15s}
+.si::placeholder{color:rgb(var(--muted))}
+.si:focus{border-color:rgba(16,185,129,.5)}
+.chips{display:flex;gap:.45rem;justify-content:center;flex-wrap:wrap;margin-top:.5rem;position:relative}
+.chip{padding:.28rem .9rem;border-radius:9999px;border:1px solid rgba(255,255,255,.1);background:rgba(255,255,255,.04);font-size:.75rem;color:rgb(var(--muted));cursor:pointer;transition:all .15s}
+.chip:hover,.chip.active-chip{color:#fff;border-color:rgba(16,185,129,.5);background:rgba(16,185,129,.1)}
+.lg{display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:1.1rem}
+.lc{padding:1.15rem}
+.limg{height:120px;border-radius:.7rem;background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(6,182,212,.07));border:1px solid rgba(255,255,255,.05);display:flex;align-items:center;justify-content:center;margin-bottom:.9rem}
+.ln{font-size:.85rem;font-weight:600}
+.ll{font-size:.72rem;color:rgb(var(--muted));margin-top:.2rem}
+.lp{font-size:.82rem;font-weight:700;color:#34d399;white-space:nowrap}
+.lm{display:flex;gap:.9rem;font-size:.7rem;color:rgb(var(--muted));margin:.55rem 0 .9rem}
+.la{display:flex;gap:.45rem}
+.hb{padding:.42rem .6rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.1);border-radius:.4rem;cursor:pointer;transition:all .12s;color:rgb(var(--muted));font-size:.9rem;line-height:1}
+.hb:hover{background:rgba(255,255,255,.1);color:#fff}
+.hb.saved-on{color:#fb7185;border-color:rgba(244,63,94,.3);background:rgba(244,63,94,.1)}
+.ar{display:flex;justify-content:space-between;align-items:center;padding:.9rem 1.1rem;margin-bottom:.45rem;cursor:pointer}
+.ar:hover{background:rgba(255,255,255,.04) !important}
+.ai{width:2.1rem;height:2.1rem;border-radius:.55rem;background:rgba(16,185,129,.1);display:flex;align-items:center;justify-content:center;margin-inline-end:.8rem;flex-shrink:0}
+.empty{text-align:center;padding:2.5rem 1rem;color:rgb(var(--muted));font-size:.88rem}
+
+/* ── FILTER POPOVER ── */
+.fpo{position:absolute;top:110%;left:50%;transform:translateX(-50%);background:#131326;border:1px solid rgba(255,255,255,.12);border-radius:.7rem;padding:1rem;z-index:300;width:220px;box-shadow:0 12px 40px rgba(0,0,0,.5);display:none}
+.fpo.open{display:block}
+
+/* ── RENTAL ── */
+.qlg{display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-bottom:1.75rem}
+@media(max-width:560px){.qlg{grid-template-columns:1fr}}
+.qlc{padding:1.15rem 1.3rem;display:flex;align-items:center;gap:.9rem;cursor:pointer}
+.qli{width:2.6rem;height:2.6rem;border-radius:.7rem;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.lr{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:.65rem;padding:1rem 1.2rem;margin-bottom:.45rem}
+.li2{width:2.35rem;height:2.35rem;border-radius:.6rem;background:rgba(245,158,11,.1);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-inline-end:.85rem}
+.rev-card{padding:1.6rem}
+.rn{display:flex;gap:2rem;flex-wrap:wrap;margin-bottom:1.3rem}
+.rl{font-size:.78rem;color:rgb(var(--muted))}
+.rv{font-size:1.5rem;font-weight:800;margin-top:.2rem}
+
+/* rental applications panel */
+.rap{margin-top:1rem}
+.rap-row{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:.6rem;padding:.9rem 1.1rem;margin-bottom:.4rem;cursor:pointer}
+.rap-row:hover{background:rgba(255,255,255,.04) !important}
+.rav{width:2rem;height:2rem;border-radius:50%;background:linear-gradient(135deg,#6366f1,#a855f7);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:800;flex-shrink:0;margin-inline-end:.75rem}
+
+/* ── REPORT ── */
+.rstat{display:flex;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid rgba(255,255,255,.06);font-size:.85rem}
+.rstat:last-child{border-bottom:none}
+.rval{font-weight:700}
+</style>
+</head>
+<body>
+
+<!-- ══ NAV ══ -->
+<nav class="nav">
+  <div class="tab-group">
+    <button class="tab a-admin" id="tab-admin"   onclick="showPage('admin')">⚙ Admin</button>
+    <button class="tab"         id="tab-student" onclick="showPage('student')">🎓 Student</button>
+    <button class="tab"         id="tab-rental"  onclick="showPage('rental')">🏠 Rental</button>
+  </div>
+  <div class="controls">
+    <div class="lang-sw">
+      <button class="lbtn active" id="btn-en" onclick="setLocale('en')">EN</button>
+      <button class="lbtn"        id="btn-ar" onclick="setLocale('ar')">AR</button>
+    </div>
+    <div class="av av-a" id="nav-av">SA</div>
+  </div>
+</nav>
+
+<!-- ══ MODAL ══ -->
+<div class="mo" id="modal" onclick="if(event.target===this)closeModal()">
+  <div class="mb">
+    <div class="mh">
+      <h3 id="m-title"></h3>
+      <button class="mx" onclick="closeModal()">✕</button>
+    </div>
+    <div class="mbody" id="m-body"></div>
+  </div>
+</div>
+
+<!-- ══ TOAST ══ -->
+<div class="toast" id="toast"></div>
+
+<!-- ══════════════════════ ADMIN PAGE ══════════════════════ -->
+<div class="page on" id="page-admin">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem">
+    <div>
+      <h2 class="ptitle" data-key="dashboardOverview">Dashboard Overview</h2>
+      <p class="psub" data-key="welcomeBack">Welcome back. Here's what's happening today.</p>
+    </div>
+    <button class="btn bi" onclick="openReport()" data-key="downloadReport">Download Report</button>
+  </div>
+
+  <div class="sg">
+    <div class="gc sc" onclick="openModal('Revenue Detail','<div class=\'rstat\'><span>January</span><span class=\'rval\'>EGP 28,400</span></div><div class=\'rstat\'><span>February</span><span class=\'rval\'>EGP 31,200</span></div><div class=\'rstat\'><span>March</span><span class=\'rval\'>EGP 35,100</span></div><div class=\'rstat\'><span>April</span><span class=\'rval\'>EGP 39,800</span></div><div class=\'rstat\'><span>May (current)</span><span class=\'rval\' style=\'color:#34d399\'>EGP 45,231</span></div>')">
+      <div class="sc-ic"><svg width="19" height="19" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="sc-v">EGP 45,231</div>
+      <div class="sc-l" data-key="totalRevenue">Total Revenue</div>
+      <div class="sc-t" data-key="revenueTrend">+20.1% from last month</div>
+    </div>
+    <div class="gc sc" onclick="openModal('Subscriptions','<div class=\'rstat\'><span>New this month</span><span class=\'rval\'>+2,350</span></div><div class=\'rstat\'><span>Student plans</span><span class=\'rval\'>1,840</span></div><div class=\'rstat\'><span>Landlord plans</span><span class=\'rval\'>510</span></div><div class=\'rstat\'><span>Growth</span><span class=\'rval\' style=\'color:#818cf8\'>+180.1%</span></div>')">
+      <div class="sc-ic"><svg width="19" height="19" fill="none" stroke="#818cf8" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+      <div class="sc-v">+2,350</div>
+      <div class="sc-l" data-key="subscriptions">Subscriptions</div>
+      <div class="sc-t" data-key="subscriptionsTrend">+180.1% from last month</div>
+    </div>
+    <div class="gc sc" onclick="openModal('Sales Breakdown','<div class=\'rstat\'><span>New rentals</span><span class=\'rval\'>8,100</span></div><div class=\'rstat\'><span>Renewals</span><span class=\'rval\'>4,134</span></div><div class=\'rstat\'><span>Cancellations</span><span class=\'rval\' style=\'color:#fb7185\'>-340</span></div><div class=\'rstat\'><span>Net</span><span class=\'rval\' style=\'color:#34d399\'>+12,234</span></div>')">
+      <div class="sc-ic"><svg width="19" height="19" fill="none" stroke="#c084fc" stroke-width="2" viewBox="0 0 24 24"><rect x="1" y="4" width="22" height="16" rx="2"/><line x1="1" y1="10" x2="23" y2="10"/></svg></div>
+      <div class="sc-v">+12,234</div>
+      <div class="sc-l" data-key="sales">Sales</div>
+      <div class="sc-t" data-key="salesTrend">+19% from last month</div>
+    </div>
+    <div class="gc sc" onclick="openModal('Active Users','<div class=\'rstat\'><span>Students online</span><span class=\'rval\'>391</span></div><div class=\'rstat\'><span>Landlords online</span><span class=\'rval\'>182</span></div><div class=\'rstat\'><span>Peak today</span><span class=\'rval\'>812</span></div><div class=\'rstat\'><span>vs last hour</span><span class=\'rval\' style=\'color:#34d399\'>+201</span></div>')">
+      <div class="sc-ic"><svg width="19" height="19" fill="none" stroke="#fb7185" stroke-width="2" viewBox="0 0 24 24"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg></div>
+      <div class="sc-v">+573</div>
+      <div class="sc-l" data-key="activeNow">Active Now</div>
+      <div class="sc-t" data-key="activeNowTrend">+201 since last hour</div>
+    </div>
+  </div>
+
+  <div class="ag">
+    <div class="gc" style="padding:1.4rem">
+      <div class="stitle" data-key="revenueGrowth">Revenue Growth</div>
+      <div class="bchart" id="admin-bars"></div>
+      <div class="months" id="admin-months"></div>
+    </div>
+    <div class="gc" style="padding:1.4rem">
+      <div class="stitle" data-key="recentActivity">Recent Activity</div>
+      <div id="act-list"></div>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════ STUDENT PAGE ══════════════════════ -->
+<div class="page" id="page-student">
+
+  <!-- Search hero -->
+  <div class="hero">
+    <h2 class="ptitle" data-key="findYourHome">Find Your Perfect Home</h2>
+    <div class="sr">
+      <input class="si" id="search-input" data-pk="searchPlaceholder" placeholder="Search by city, district or university..." oninput="liveSearch()"/>
+      <button class="btn be" onclick="doSearch()" data-key="search">Search</button>
+    </div>
+    <div class="chips" id="chips-area">
+      <div id="price-chip" class="chip" onclick="toggleFilter('price')" data-key="price">Price</div>
+      <div id="location-chip" class="chip" onclick="toggleFilter('location')" data-key="location">Location</div>
+      <div id="rooms-chip" class="chip" onclick="toggleFilter('rooms')" data-key="rooms">Rooms</div>
+      <!-- filter popovers -->
+      <div class="fpo" id="fpo-price">
+        <label>Max price (EGP/mo)</label>
+        <input class="fi" type="number" id="f-price" placeholder="e.g. 8000" onchange="applyFilters()"/>
+        <button class="btn be" style="width:100%;margin-top:.3rem" onclick="applyFilters();toggleFilter('price')">Apply</button>
+      </div>
+      <div class="fpo" id="fpo-location">
+        <label>City</label>
+        <select class="fi" id="f-loc" onchange="applyFilters()">
+          <option value="">All cities</option>
+          <option>Cairo</option>
+          <option>Giza</option>
+          <option>Alexandria</option>
+        </select>
+        <button class="btn be" style="width:100%;margin-top:.3rem" onclick="applyFilters();toggleFilter('location')">Apply</button>
+      </div>
+      <div class="fpo" id="fpo-rooms">
+        <label>Bedrooms</label>
+        <select class="fi" id="f-rooms" onchange="applyFilters()">
+          <option value="">Any</option>
+          <option value="1">1 Bed</option>
+          <option value="2">2 Beds</option>
+          <option value="3">3+ Beds</option>
+        </select>
+        <button class="btn be" style="width:100%;margin-top:.3rem" onclick="applyFilters();toggleFilter('rooms')">Apply</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Stats -->
+  <div class="sg">
+    <div class="gc sc" onclick="switchSView('all')">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div class="sc-v">1,240</div>
+      <div class="sc-l" data-key="availableListings">Available Listings</div>
+    </div>
+    <div class="gc sc" onclick="switchSView('saved')">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#fb7185" stroke-width="2" viewBox="0 0 24 24"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg></div>
+      <div class="sc-v" id="saved-count">8</div>
+      <div class="sc-l" data-key="savedApartments">Saved</div>
+    </div>
+    <div class="gc sc" onclick="switchSView('apps')">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#818cf8" stroke-width="2" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg></div>
+      <div class="sc-v">3</div>
+      <div class="sc-l" data-key="applicationsSent">Applications</div>
+    </div>
+    <div class="gc sc" onclick="openProfileModal()">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#c084fc" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div class="sc-v">24</div>
+      <div class="sc-l" data-key="profileViews">Profile Views</div>
+    </div>
+  </div>
+
+  <!-- Sub-view header -->
+  <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem">
+    <div class="stitle" style="margin-bottom:0" id="sview-title">Featured Listings</div>
+    <div style="display:flex;gap:.5rem;align-items:center">
+      <span id="filter-badge" style="font-size:.7rem;color:#34d399;display:none"></span>
+      <button id="clear-filter-btn" class="btn bg bsm" style="display:none" onclick="clearFilters()">✕ Clear</button>
+      <button class="btn bg bsm" id="view-all-btn" onclick="switchSView('all')" data-key="viewAll">View All</button>
+    </div>
+  </div>
+
+  <!-- Listings grid -->
+  <div class="lg" id="listings-grid"></div>
+  <div class="empty" id="empty-msg" style="display:none">No listings match your search.</div>
+
+  <!-- Applications section -->
+  <div id="apps-section" style="margin-top:2rem">
+    <div class="stitle" data-key="myApplications">My Applications</div>
+    <div id="apps-list"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════ RENTAL PAGE ══════════════════════ -->
+<div class="page" id="page-rental">
+  <div style="display:flex;justify-content:space-between;align-items:flex-end;flex-wrap:wrap;gap:1rem;margin-bottom:1.75rem">
+    <div>
+      <h2 class="ptitle" data-key="myListings">My Listings</h2>
+      <p class="psub" data-key="welcomeBack">Welcome back. Here's what's happening today.</p>
+    </div>
+    <button class="btn ba" onclick="openAddModal()" data-key="addNewListing">+ Add New Listing</button>
+  </div>
+
+  <!-- Stats -->
+  <div class="sg">
+    <div class="gc sc" onclick="scrollTo2('#rental-listings-section')">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div class="sc-v" id="active-count">2</div>
+      <div class="sc-l" data-key="activeListings">Active Listings</div>
+    </div>
+    <div class="gc sc" onclick="openViewsModal()">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#22d3ee" stroke-width="2" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></div>
+      <div class="sc-v">645</div>
+      <div class="sc-l" data-key="totalViews">Total Views</div>
+    </div>
+    <div class="gc sc" onclick="switchRView('apps')">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+      <div class="sc-v">13</div>
+      <div class="sc-l" data-key="pendingApplications">Pending Applications</div>
+    </div>
+    <div class="gc sc" onclick="scrollTo2('#rev-section')">
+      <div class="sc-ic"><svg width="18" height="18" fill="none" stroke="#c084fc" stroke-width="2" viewBox="0 0 24 24"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg></div>
+      <div class="sc-v" id="rev-stat">EGP 12,500</div>
+      <div class="sc-l" data-key="monthlyRevenue">Monthly Revenue</div>
+    </div>
+  </div>
+
+  <!-- Quick actions -->
+  <div class="qlg">
+    <div class="gc qlc" onclick="switchRView('listings')">
+      <div class="qli" style="background:rgba(245,158,11,.12)"><svg width="20" height="20" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+      <div><div style="font-weight:700;font-size:.9rem" data-key="manageListings">Manage Listings</div><div style="font-size:.72rem;color:rgb(var(--muted));margin-top:.2rem"><span data-key="activeListings">Active</span>: 2</div></div>
+    </div>
+    <div class="gc qlc" onclick="switchRView('apps')">
+      <div class="qli" style="background:rgba(99,102,241,.12)"><svg width="20" height="20" fill="none" stroke="#818cf8" stroke-width="2" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/></svg></div>
+      <div><div style="font-weight:700;font-size:.9rem" data-key="viewApplications">View Applications</div><div style="font-size:.72rem;color:rgb(var(--muted));margin-top:.2rem"><span data-key="pendingApplications">Pending</span>: 13</div></div>
+    </div>
+  </div>
+
+  <!-- Listings section -->
+  <div id="rental-listings-section">
+    <div class="stitle" data-key="myListings">My Listings</div>
+    <div id="rental-list"></div>
+  </div>
+
+  <!-- Applications panel -->
+  <div id="rental-apps-section" style="display:none;margin-top:1.5rem">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:1.1rem">
+      <div class="stitle" style="margin-bottom:0" data-key="viewApplications">Applications</div>
+      <button class="btn bg bsm" onclick="switchRView('listings')" data-key="myListings">← Listings</button>
+    </div>
+    <div id="rap-list" class="rap"></div>
+  </div>
+
+  <!-- Revenue -->
+  <div class="gc rev-card" id="rev-section" style="margin-top:1.5rem">
+    <div class="rn">
+      <div><div class="rl" data-key="totalEarned">Total Earned</div><div class="rv" style="color:#fbbf24">EGP 107,000</div></div>
+      <div><div class="rl" data-key="thisMonth">This Month</div><div class="rv" style="color:#34d399">EGP 12,500</div></div>
+    </div>
+    <div class="bchart" id="rev-bars"></div>
+    <div class="months" id="rev-months"></div>
+  </div>
+</div>
+
+<script>
+// ════════════════════════════════ DATA ════════════════════════════════
+
+const DICT = {
+  en:{dashboardOverview:"Dashboard Overview",welcomeBack:"Welcome back. Here's what's happening today.",
+    downloadReport:"Download Report",totalRevenue:"Total Revenue",subscriptions:"Subscriptions",
+    sales:"Sales",activeNow:"Active Now",revenueTrend:"+20.1% from last month",
+    subscriptionsTrend:"+180.1% from last month",salesTrend:"+19% from last month",
+    activeNowTrend:"+201 since last hour",revenueGrowth:"Revenue Growth",
+    recentActivity:"Recent Activity",newUserRegistered:"New user registered",minutesAgo:"min ago",
+    findYourHome:"Find Your Perfect Home",searchPlaceholder:"Search by city, district or university...",
+    search:"Search",price:"Price",location:"Location",rooms:"Rooms",
+    availableListings:"Available Listings",savedApartments:"Saved",applicationsSent:"Applications",
+    profileViews:"Profile Views",featuredListings:"Featured Listings",viewAll:"View All",
+    perMonth:"/ mo",beds:"Beds",baths:"Baths",sqft:"sqft",applyNow:"Apply Now",
+    myApplications:"My Applications",pending:"Pending",approved:"Approved",rejected:"Rejected",
+    myListings:"My Listings",addNewListing:"Add New Listing",activeListings:"Active Listings",
+    totalViews:"Total Views",pendingApplications:"Pending Applications",monthlyRevenue:"Monthly Revenue",
+    active:"Active",underReview:"Under Review",manageListings:"Manage Listings",
+    viewApplications:"View Applications",editListing:"Edit",applicants:"applicants",
+    viewsCount:"views",totalEarned:"Total Earned",thisMonth:"This Month"},
+  ar:{dashboardOverview:"نظرة عامة على لوحة التحكم",welcomeBack:"مرحباً بعودتك. إليك ما يحدث اليوم.",
+    downloadReport:"تحميل التقرير",totalRevenue:"إجمالي الإيرادات",subscriptions:"الاشتراكات",
+    sales:"المبيعات",activeNow:"نشط الآن",revenueTrend:"+20.1% من الشهر الماضي",
+    subscriptionsTrend:"+180.1% من الشهر الماضي",salesTrend:"+19% من الشهر الماضي",
+    activeNowTrend:"+201 منذ الساعة الأخيرة",revenueGrowth:"نمو الإيرادات",
+    recentActivity:"النشاط الأخير",newUserRegistered:"مستخدم جديد مسجّل",minutesAgo:"د مضت",
+    findYourHome:"ابحث عن منزلك المثالي",searchPlaceholder:"ابحث بالمدينة أو الحي أو الجامعة...",
+    search:"بحث",price:"السعر",location:"الموقع",rooms:"الغرف",
+    availableListings:"الوحدات المتاحة",savedApartments:"المحفوظات",applicationsSent:"الطلبات",
+    profileViews:"مشاهدات الملف",featuredListings:"الوحدات المميزة",viewAll:"عرض الكل",
+    perMonth:"/ شهر",beds:"غرف",baths:"حمامات",sqft:"قدم²",applyNow:"تقدم الآن",
+    myApplications:"طلباتي",pending:"قيد الانتظار",approved:"مقبول",rejected:"مرفوض",
+    myListings:"وحداتي",addNewListing:"إضافة وحدة",activeListings:"الوحدات النشطة",
+    totalViews:"إجمالي المشاهدات",pendingApplications:"الطلبات المعلقة",monthlyRevenue:"الإيرادات الشهرية",
+    active:"نشط",underReview:"قيد المراجعة",manageListings:"إدارة الوحدات",
+    viewApplications:"عرض الطلبات",editListing:"تعديل",applicants:"متقدم",
+    viewsCount:"مشاهدة",totalEarned:"إجمالي الأرباح",thisMonth:"هذا الشهر"}
+};
+
+const MONTHS = {
+  en:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
+  ar:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"]
+};
+const REV = [28400,31200,35100,39800,42100,45231,0,0,0,0,0,0];
+const BAR_H = [35,50,42,65,55,72,60,80,70,88,75,95];
+
+const ALL_LISTINGS = [
+  {id:0, name:{en:"Studio near Cairo University",ar:"استوديو قرب جامعة القاهرة"},loc:{en:"Giza, Dokki",ar:"الجيزة، الدقي"},city:"Giza",price:4500,beds:1,baths:1,sqft:40},
+  {id:1, name:{en:"Furnished 2BR – Zamalek",ar:"شقة مفروشة غرفتين – الزمالك"},loc:{en:"Cairo, Zamalek",ar:"القاهرة، الزمالك"},city:"Cairo",price:9000,beds:2,baths:2,sqft:95},
+  {id:2, name:{en:"Shared Room – Nasr City",ar:"غرفة مشتركة – مدينة نصر"},loc:{en:"Cairo, Nasr City",ar:"القاهرة، مدينة نصر"},city:"Cairo",price:2200,beds:1,baths:1,sqft:22},
+  {id:3, name:{en:"Modern 1BR – New Cairo",ar:"شقة حديثة – القاهرة الجديدة"},loc:{en:"Cairo, New Cairo",ar:"القاهرة، القاهرة الجديدة"},city:"Cairo",price:6500,beds:1,baths:1,sqft:70},
+  {id:4, name:{en:"3BR Family Apartment",ar:"شقة عائلية 3 غرف"},loc:{en:"Alexandria, Sidi Bishr",ar:"الإسكندرية، سيدي بشر"},city:"Alexandria",price:7000,beds:3,baths:2,sqft:130},
+  {id:5, name:{en:"Cozy Studio – Maadi",ar:"استوديو مريح – المعادي"},loc:{en:"Cairo, Maadi",ar:"القاهرة، المعادي"},city:"Cairo",price:5000,beds:1,baths:1,sqft:45},
+  {id:6, name:{en:"1BR near AUC",ar:"شقة غرفة قرب الجامعة الأمريكية"},loc:{en:"Cairo, Fifth Settlement",ar:"القاهرة، التجمع الخامس"},city:"Cairo",price:7500,beds:1,baths:1,sqft:65},
+  {id:7, name:{en:"2BR with Nile View",ar:"شقة غرفتين بإطلالة على النيل"},loc:{en:"Cairo, Agouza",ar:"القاهرة، العجوزة"},city:"Cairo",price:12000,beds:2,baths:2,sqft:110},
+  {id:8, name:{en:"Budget Room – Heliopolis",ar:"غرفة اقتصادية – مصر الجديدة"},loc:{en:"Cairo, Heliopolis",ar:"القاهرة، مصر الجديدة"},city:"Cairo",price:1800,beds:1,baths:1,sqft:18},
+  {id:9, name:{en:"Furnished Studio – 6th October",ar:"استوديو مفروش – 6 أكتوبر"},loc:{en:"Giza, 6th October",ar:"الجيزة، 6 أكتوبر"},city:"Giza",price:4000,beds:1,baths:1,sqft:42},
+  {id:10,name:{en:"3BR Penthouse – Sheikh Zayed",ar:"بنتهاوس 3 غرف – الشيخ زايد"},loc:{en:"Giza, Sheikh Zayed",ar:"الجيزة، الشيخ زايد"},city:"Giza",price:18000,beds:3,baths:3,sqft:200},
+  {id:11,name:{en:"Shared Apartment – Girls Only",ar:"شقة مشتركة للبنات"},loc:{en:"Cairo, Mohandessin",ar:"القاهرة، المهندسين"},city:"Cairo",price:3000,beds:1,baths:1,sqft:25},
+];
+
+const STUDENT_APPS = [
+  {id:0,listingId:0,status:"pending",date:"2026-05-01",msg:"I am a 3rd-year Computer Science student at Cairo University looking for quiet accommodation close to campus."},
+  {id:1,listingId:1,status:"approved",date:"2026-04-20",msg:"Graduate student, very tidy and quiet. References available on request."},
+  {id:2,listingId:3,status:"rejected",date:"2026-04-10",msg:"2nd-year Medical student. Non-smoker. Looking for 6-month lease."},
+];
+
+const RENTAL_LISTINGS = [
+  {id:0,name:{en:"Studio – Dokki, Giza",ar:"استوديو – الدقي، الجيزة"},price:4500,views:342,applicants:7,status:"active"},
+  {id:1,name:{en:"2BR – Zamalek, Cairo",ar:"شقة غرفتين – الزمالك، القاهرة"},price:9000,views:215,applicants:4,status:"active"},
+  {id:2,name:{en:"Shared Room – Nasr City",ar:"غرفة مشتركة – مدينة نصر"},price:2200,views:88,applicants:2,status:"underReview"},
+  {id:3,name:{en:"1BR – New Cairo",ar:"شقة غرفة – القاهرة الجديدة"},price:6500,views:0,applicants:0,status:"underReview"},
+];
+
+const RENTAL_APPS = [
+  {id:1,student:"Ahmed Hassan",initials:"AH",listing:{en:"Studio – Dokki",ar:"استوديو – الدقي"},date:"2026-05-08",status:"pending",msg:"3rd-year student at Cairo University. Very clean and quiet."},
+  {id:2,student:"Sara Mohamed",initials:"SM",listing:{en:"Studio – Dokki",ar:"استوديو – الدقي"},date:"2026-05-07",status:"pending",msg:"Graduate student, female. Looking for 6-month lease."},
+  {id:3,student:"Omar Khaled",initials:"OK",listing:{en:"2BR – Zamalek",ar:"شقة غرفتين – الزمالك"},date:"2026-05-06",status:"pending",msg:"Two friends, both engineers. Non-smokers."},
+  {id:4,student:"Nour Ali",initials:"NA",listing:{en:"Studio – Dokki",ar:"استوديو – الدقي"},date:"2026-05-05",status:"approved",msg:"Medical student at Ain Shams University."},
+  {id:5,student:"Youssef Samir",initials:"YS",listing:{en:"2BR – Zamalek",ar:"شقة غرفتين – الزمالك"},date:"2026-05-04",status:"pending",msg:"Looking for a 12-month lease. Work from home."},
+];
+
+// ════════════════════════════════ STATE ════════════════════════════════
+const S = {
+  locale: localStorage.getItem('locale')||'en',
+  page: 'admin',
+  sView: 'featured',
+  rView: 'listings',
+  saved: new Set([0,1,3,5,6,7,8,9]),
+  applied: new Set([0,1,2]),
+  query: '',
+  fPrice: null,
+  fLoc: '',
+  fRooms: '',
+  activeFilter: null,
+};
+
+// ════════════════════════════════ HELPERS ════════════════════════════════
+function t(k){ return DICT[S.locale][k]||k }
+function cur(n){ return 'EGP '+n.toLocaleString() }
+function toast(msg,ms=2400){
+  const el=document.getElementById('toast');
+  el.textContent=msg; el.classList.add('show');
+  setTimeout(()=>el.classList.remove('show'),ms);
+}
+function scrollTo2(sel){
+  const el=document.querySelector(sel);
+  if(el) el.scrollIntoView({behavior:'smooth',block:'start'});
+}
+
+// ════════════════════════════════ MODAL ════════════════════════════════
+function openModal(title,body){
+  document.getElementById('m-title').textContent=title;
+  document.getElementById('m-body').innerHTML=body;
+  document.getElementById('modal').classList.add('open');
+}
+function closeModal(){ document.getElementById('modal').classList.remove('open') }
+
+// ════════════════════════════════ NAV ════════════════════════════════
+function showPage(p){
+  S.page=p;
+  document.querySelectorAll('.page').forEach(el=>el.classList.remove('on'));
+  document.getElementById('page-'+p).classList.add('on');
+  const cls={admin:'a-admin',student:'a-student',rental:'a-rental'};
+  const avt={admin:'SA',student:'ST',rental:'LL'};
+  const avc={admin:'av-a',student:'av-s',rental:'av-r'};
+  document.querySelectorAll('.tab').forEach(el=>{ el.className='tab'; if(el.id==='tab-'+p) el.classList.add(cls[p]); });
+  const av=document.getElementById('nav-av');
+  av.textContent=avt[p]; av.className='av '+avc[p];
+  closeModal();
+}
+
+function setLocale(l){
+  S.locale=l;
+  document.getElementById('root-html').setAttribute('lang',l);
+  document.getElementById('root-html').setAttribute('dir',l==='ar'?'rtl':'ltr');
+  document.querySelectorAll('[data-key]').forEach(el=>{
+    const k=el.getAttribute('data-key');
+    if(DICT[l][k]) el.textContent=DICT[l][k];
+  });
+  const si=document.getElementById('search-input');
+  if(si) si.placeholder=t('searchPlaceholder');
+  document.getElementById('btn-en').classList.toggle('active',l==='en');
+  document.getElementById('btn-ar').classList.toggle('active',l==='ar');
+  localStorage.setItem('locale',l);
+  renderAll();
+}
+
+// ════════════════════════════════ ADMIN ════════════════════════════════
+function renderAdminBars(){
+  const el=document.getElementById('admin-bars');
+  const mn=document.getElementById('admin-months');
+  el.innerHTML=BAR_H.map((h,i)=>`<div class="bar bar-i" style="height:${h}%" onclick="toast('${MONTHS[S.locale][i]}: EGP ${(h*500).toLocaleString()}')" title="${MONTHS[S.locale][i]}"></div>`).join('');
+  mn.innerHTML=MONTHS[S.locale].map(m=>`<span>${m}</span>`).join('');
+}
+function renderActivity(){
+  const el=document.getElementById('act-list');
+  const acts=[
+    {u:"Ahmed H.",ev:"newUserRegistered",m:2},{u:"Sara M.",ev:"newUserRegistered",m:4},
+    {u:"Omar K.",ev:"newUserRegistered",m:6},{u:"Nour A.",ev:"newUserRegistered",m:8},{u:"Youssef S.",ev:"newUserRegistered",m:10}
+  ];
+  el.innerHTML=acts.map(a=>`
+    <div class="act-item" onclick="openModal('User Activity','<p style=\'font-size:.85rem;line-height:1.6\'><b>${a.u}</b> ${t('newUserRegistered').toLowerCase()} ${a.m} ${t('minutesAgo')}.<br><br>Platform: Student Portal<br>Location: Cairo, Egypt<br>Device: Mobile</p>')">
+      <div class="dot"></div>
+      <div style="flex:1">
+        <div style="font-size:.81rem;font-weight:500">${t('newUserRegistered')}</div>
+        <div style="font-size:.68rem;color:rgb(var(--muted))">${a.u} · ${a.m} ${t('minutesAgo')}</div>
+      </div>
+      <svg width="13" height="13" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+    </div>`).join('');
+}
+function openReport(){
+  openModal(t('downloadReport'),`
+    <div style="margin-bottom:1rem;padding:.9rem;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:.6rem;font-size:.8rem;color:#818cf8">
+      Sakeni Platform · May 2026 Report
+    </div>
+    <div class="rstat"><span>${t('totalRevenue')}</span><span class="rval" style="color:#34d399">EGP 45,231</span></div>
+    <div class="rstat"><span>${t('subscriptions')}</span><span class="rval">2,350</span></div>
+    <div class="rstat"><span>${t('sales')}</span><span class="rval">12,234</span></div>
+    <div class="rstat"><span>${t('activeNow')}</span><span class="rval">573</span></div>
+    <div class="rstat"><span>New Listings</span><span class="rval">184</span></div>
+    <div class="rstat"><span>Avg. Rent (Cairo)</span><span class="rval">EGP 6,200/mo</span></div>
+    <div class="rstat"><span>Student Sign-ups</span><span class="rval">1,840</span></div>
+    <div class="rstat"><span>Landlord Sign-ups</span><span class="rval">510</span></div>
+    <div style="margin-top:1.25rem;display:flex;gap:.6rem">
+      <button class="btn bi" style="flex:1" onclick="toast('Report downloaded ✓');closeModal()">⬇ Download PDF</button>
+      <button class="btn bg" style="flex:1" onclick="window.print()">🖨 Print</button>
+    </div>`);
+}
+
+// ════════════════════════════════ STUDENT ════════════════════════════════
+function filteredListings(){
+  return ALL_LISTINGS.filter(l=>{
+    const q=S.query.toLowerCase();
+    const nameMatch=l.name[S.locale].toLowerCase().includes(q)||l.loc[S.locale].toLowerCase().includes(q);
+    const priceOk=!S.fPrice||l.price<=parseInt(S.fPrice);
+    const locOk=!S.fLoc||l.city===S.fLoc;
+    const roomsOk=!S.fRooms||(S.fRooms==='3'?l.beds>=3:l.beds===parseInt(S.fRooms));
+    return nameMatch&&priceOk&&locOk&&roomsOk;
+  });
+}
+function listingsToShow(){
+  if(S.sView==='saved') return ALL_LISTINGS.filter(l=>S.saved.has(l.id));
+  if(S.sView==='featured') return ALL_LISTINGS.slice(0,4);
+  return filteredListings();
+}
+function renderListings(){
+  const list=listingsToShow();
+  const grid=document.getElementById('listings-grid');
+  const empty=document.getElementById('empty-msg');
+  const title=document.getElementById('sview-title');
+  const vaBtn=document.getElementById('view-all-btn');
+  const fbadge=document.getElementById('filter-badge');
+  const cfBtn=document.getElementById('clear-filter-btn');
+
+  if(S.sView==='saved') title.textContent=`${t('savedApartments')} (${S.saved.size})`;
+  else if(S.sView==='all'||S.sView==='search') title.textContent=t('availableListings');
+  else title.setAttribute('data-key','featuredListings'), title.textContent=t('featuredListings');
+
+  const hasFilter=S.fPrice||S.fLoc||S.fRooms;
+  fbadge.style.display=hasFilter?'inline':'none';
+  cfBtn.style.display=hasFilter?'inline-flex':'none';
+  if(hasFilter){const parts=[];if(S.fPrice)parts.push(`≤EGP ${parseInt(S.fPrice).toLocaleString()}`);if(S.fLoc)parts.push(S.fLoc);if(S.fRooms)parts.push(S.fRooms==='3'?'3+ beds':S.fRooms+' bed');fbadge.textContent=parts.join(' · ');}
+
+  vaBtn.style.display=S.sView==='all'?'none':'inline-flex';
+
+  if(!list.length){grid.innerHTML='';empty.style.display='block';return;}
+  empty.style.display='none';
+
+  grid.innerHTML=list.map(l=>{
+    const sv=S.saved.has(l.id);
+    const applied=S.applied.has(l.id);
+    return `<div class="gc lc">
+      <div class="limg"><svg width="32" height="32" fill="none" stroke="rgba(255,255,255,.1)" stroke-width="1.5" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></div>
+      <div style="display:flex;justify-content:space-between;align-items:flex-start;gap:.4rem">
+        <div><div class="ln">${l.name[S.locale]}</div><div class="ll">📍 ${l.loc[S.locale]}</div></div>
+        <div class="lp">${cur(l.price)}<span style="color:rgb(var(--muted));font-weight:400;font-size:.68rem"> ${t('perMonth')}</span></div>
+      </div>
+      <div class="lm"><span>🛏 ${l.beds} ${t('beds')}</span><span>🚿 ${l.baths} ${t('baths')}</span><span>📐 ${l.sqft} ${t('sqft')}</span></div>
+      <div class="la">
+        <button class="bsm ${applied?'bg':'be'} btn" style="flex:1" onclick="${applied?`toast('Already applied!')`:`openApplyModal(${l.id})`}">${applied?'✓ Applied':t('applyNow')}</button>
+        <button class="hb ${sv?'saved-on':''}" onclick="toggleSave(${l.id})" title="${sv?'Unsave':'Save'}">${sv?'♥':'♡'}</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+function renderApps(){
+  const el=document.getElementById('apps-list');
+  const bCls={pending:'b-am',approved:'b-em',rejected:'b-ro'};
+  el.innerHTML=STUDENT_APPS.map(a=>{
+    const l=ALL_LISTINGS.find(x=>x.id===a.listingId);
+    return `<div class="gc ar" onclick="openAppDetail(${a.id})">
+      <div style="display:flex;align-items:center">
+        <div class="ai"><svg width="15" height="15" fill="none" stroke="#34d399" stroke-width="2" viewBox="0 0 24 24"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg></div>
+        <div><div style="font-size:.84rem;font-weight:600">${l?l.name[S.locale]:''}</div><div style="font-size:.7rem;color:rgb(var(--muted));margin-top:.15rem">${a.date}</div></div>
+      </div>
+      <span class="badge ${bCls[a.status]}">${t(a.status)}</span>
+    </div>`;
+  }).join('');
+}
+function switchSView(v){
+  S.sView=v;
+  const appsec=document.getElementById('apps-section');
+  if(v==='apps'){appsec.scrollIntoView({behavior:'smooth',block:'start'});return;}
+  renderListings();
+  if(v!=='featured') document.getElementById('page-student').scrollTo(0,0);
+}
+function toggleSave(id){
+  if(S.saved.has(id)){S.saved.delete(id);toast('Removed from saved');}
+  else{S.saved.add(id);toast('Saved! ♥');}
+  document.getElementById('saved-count').textContent=S.saved.size;
+  renderListings();
+}
+function doSearch(){
+  S.query=document.getElementById('search-input').value.trim();
+  S.sView='search';
+  renderListings();
+}
+function liveSearch(){
+  S.query=document.getElementById('search-input').value.trim();
+  if(S.sView==='featured'||S.sView==='search') S.sView='search';
+  renderListings();
+}
+function applyFilters(){
+  S.fPrice=document.getElementById('f-price').value||null;
+  S.fLoc=document.getElementById('f-loc').value||'';
+  S.fRooms=document.getElementById('f-rooms').value||'';
+  if(S.sView==='featured') S.sView='all';
+  renderListings();
+}
+function clearFilters(){
+  S.fPrice=null; S.fLoc=''; S.fRooms=''; S.query='';
+  document.getElementById('f-price').value='';
+  document.getElementById('f-loc').value='';
+  document.getElementById('f-rooms').value='';
+  document.getElementById('search-input').value='';
+  S.sView='featured'; renderListings();
+}
+function toggleFilter(name){
+  const all=['price','location','rooms'];
+  all.forEach(n=>{
+    const po=document.getElementById('fpo-'+n);
+    const ch=document.getElementById(n+'-chip');
+    if(n===name){
+      const isOpen=po.classList.contains('open');
+      po.classList.toggle('open',!isOpen);
+      ch.classList.toggle('active-chip',!isOpen);
+      S.activeFilter=isOpen?null:name;
+    } else {
+      po.classList.remove('open');
+      ch.classList.remove('active-chip');
+    }
+  });
+}
+document.addEventListener('click',function(e){
+  if(!document.getElementById('chips-area').contains(e.target)){
+    ['price','location','rooms'].forEach(n=>{
+      document.getElementById('fpo-'+n).classList.remove('open');
+      document.getElementById(n+'-chip').classList.remove('active-chip');
+    });
+  }
+});
+function openApplyModal(id){
+  const l=ALL_LISTINGS.find(x=>x.id===id);
+  const ln=l?l.name[S.locale]:'';
+  openModal(t('applyNow'),`
+    <p style="font-size:.82rem;color:rgb(var(--muted));margin-bottom:1.1rem">${ln} · ${l?cur(l.price):''} ${t('perMonth')}</p>
+    <label>Full Name</label><input class="fi" id="a-name" placeholder="e.g. Ahmed Hassan"/>
+    <label>Phone Number</label><input class="fi" id="a-phone" placeholder="+20 1xx xxx xxxx"/>
+    <label>University / Institution</label><input class="fi" id="a-uni" placeholder="e.g. Cairo University"/>
+    <div class="frow">
+      <div><label>Move-in Date</label><input class="fi" id="a-date" type="date"/></div>
+      <div><label>Lease Duration</label><select class="fi" id="a-lease"><option>3 months</option><option>6 months</option><option selected>12 months</option></select></div>
+    </div>
+    <label>Message to Landlord</label>
+    <textarea class="fi" id="a-msg" placeholder="Tell the landlord about yourself..."></textarea>
+    <button class="btn be" style="width:100%" onclick="submitApply(${id})">Submit Application</button>`);
+}
+function submitApply(id){
+  const name=document.getElementById('a-name').value.trim();
+  if(!name){toast('Please enter your name');return;}
+  S.applied.add(id);
+  closeModal();
+  toast('Application submitted! ✓');
+  renderListings(); renderApps();
+}
+function openAppDetail(id){
+  const a=STUDENT_APPS.find(x=>x.id===id);
+  const l=ALL_LISTINGS.find(x=>x.id===a.listingId);
+  const bCls={pending:'#fbbf24',approved:'#34d399',rejected:'#fb7185'};
+  const actions={
+    pending:'<div style="margin-top:1rem;padding:.75rem;background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);border-radius:.5rem;font-size:.78rem;color:#fbbf24">⏳ Your application is being reviewed by the landlord.</div>',
+    approved:'<div style="margin-top:1rem;padding:.75rem;background:rgba(16,185,129,.08);border:1px solid rgba(16,185,129,.2);border-radius:.5rem;font-size:.78rem;color:#34d399">✅ Approved! The landlord will contact you within 24 hours.<br><br><b>Contact:</b> +20 100 123 4567</div>',
+    rejected:'<div style="margin-top:1rem;padding:.75rem;background:rgba(244,63,94,.08);border:1px solid rgba(244,63,94,.2);border-radius:.5rem;font-size:.78rem;color:#fb7185">❌ Application declined. You can apply to similar listings.<button class="btn be bsm" style="margin-top:.7rem;width:100%" onclick="switchSView(\'all\');closeModal()">Browse Listings</button></div>',
+  };
+  openModal('Application Details',`
+    <div style="margin-bottom:1rem">
+      <div style="font-weight:700;font-size:.95rem">${l.name[S.locale]}</div>
+      <div style="font-size:.78rem;color:rgb(var(--muted));margin-top:.2rem">📍 ${l.loc[S.locale]} · ${cur(l.price)} ${t('perMonth')}</div>
+    </div>
+    <div class="rstat"><span>Status</span><span class="rval" style="color:${bCls[a.status]}">${t(a.status)}</span></div>
+    <div class="rstat"><span>Applied on</span><span class="rval">${a.date}</span></div>
+    <div class="rstat"><span>Your message</span></div>
+    <p style="font-size:.8rem;color:rgb(var(--muted));margin-top:.3rem;line-height:1.5">"${a.msg}"</p>
+    ${actions[a.status]}`);
+}
+function openProfileModal(){
+  openModal('My Profile',`
+    <div style="text-align:center;margin-bottom:1.25rem">
+      <div style="width:3.5rem;height:3.5rem;border-radius:50%;background:linear-gradient(135deg,#10b981,#06b6d4);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;margin:0 auto .75rem">ST</div>
+      <div style="font-weight:700">Student User</div>
+      <div style="font-size:.78rem;color:rgb(var(--muted))">student@sakeni.eg</div>
+    </div>
+    <div class="rstat"><span>University</span><span class="rval">Cairo University</span></div>
+    <div class="rstat"><span>Profile views this week</span><span class="rval" style="color:#818cf8">24</span></div>
+    <div class="rstat"><span>Saved listings</span><span class="rval">${S.saved.size}</span></div>
+    <div class="rstat"><span>Applications sent</span><span class="rval">3</span></div>
+    <div class="rstat"><span>Member since</span><span class="rval">Jan 2026</span></div>
+    <button class="btn be" style="width:100%;margin-top:1.1rem" onclick="toast('Profile updated ✓');closeModal()">Edit Profile</button>`);
+}
+
+// ════════════════════════════════ RENTAL ════════════════════════════════
+let rentalListingsData=[...RENTAL_LISTINGS];
+function renderRentalListings(){
+  const el=document.getElementById('rental-list');
+  const bCls={active:'b-em',underReview:'b-am'};
+  el.innerHTML=rentalListingsData.map(l=>`
+    <div class="gc lr">
+      <div style="display:flex;align-items:center;flex:1;min-width:0">
+        <div class="li2"><svg width="17" height="17" fill="none" stroke="#fbbf24" stroke-width="2" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg></div>
+        <div style="min-width:0"><div style="font-weight:600;font-size:.86rem;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${l.name[S.locale]}</div>
+        <div style="font-size:.72rem;color:rgb(var(--muted));margin-top:.15rem">${cur(l.price)} / ${S.locale==='ar'?'شهر':'mo'}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.9rem;flex-wrap:wrap">
+        <span style="font-size:.73rem;color:rgb(var(--muted))">👁 ${l.views} ${t('viewsCount')}</span>
+        <span style="font-size:.73rem;color:rgb(var(--muted))">👤 ${l.applicants} ${t('applicants')}</span>
+        <span class="badge ${bCls[l.status]}">${t(l.status)}</span>
+        <button class="btn bg bsm" onclick="openEditModal(${l.id})">${t('editListing')}</button>
+      </div>
+    </div>`).join('');
+  document.getElementById('active-count').textContent=rentalListingsData.filter(l=>l.status==='active').length;
+  document.getElementById('rev-stat').textContent=cur(rentalListingsData.reduce((s,l)=>s+(l.status==='active'?l.price:0),0));
+}
+function renderRentalApps(){
+  const el=document.getElementById('rap-list');
+  const bCls={pending:'b-am',approved:'b-em',rejected:'b-ro'};
+  el.innerHTML=RENTAL_APPS.map(a=>`
+    <div class="gc rap-row" onclick="openRentalAppDetail(${a.id})">
+      <div style="display:flex;align-items:center">
+        <div class="rav">${a.initials}</div>
+        <div><div style="font-size:.85rem;font-weight:600">${a.student}</div>
+        <div style="font-size:.71rem;color:rgb(var(--muted));margin-top:.15rem">${a.listing[S.locale]} · ${a.date}</div></div>
+      </div>
+      <div style="display:flex;align-items:center;gap:.6rem">
+        <span class="badge ${bCls[a.status]}">${t(a.status)}</span>
+        <svg width="13" height="13" fill="none" stroke="rgba(255,255,255,.2)" stroke-width="2" viewBox="0 0 24 24"><polyline points="9 18 15 12 9 6"/></svg>
+      </div>
+    </div>`).join('');
+}
+function switchRView(v){
+  S.rView=v;
+  document.getElementById('rental-listings-section').style.display=v==='listings'?'block':'none';
+  document.getElementById('rental-apps-section').style.display=v==='apps'?'block':'none';
+  if(v==='apps') renderRentalApps();
+}
+function openAddModal(){
+  openModal(t('addNewListing'),`
+    <label>Property Title</label><input class="fi" id="nl-title" placeholder="e.g. Cozy Studio near Campus"/>
+    <div class="frow">
+      <div><label>City</label>
+        <select class="fi" id="nl-city"><option>Cairo</option><option>Giza</option><option>Alexandria</option></select></div>
+      <div><label>District</label><input class="fi" id="nl-dist" placeholder="e.g. Dokki"/></div>
+    </div>
+    <div class="frow">
+      <div><label>Price (EGP/mo)</label><input class="fi" id="nl-price" type="number" placeholder="e.g. 5000"/></div>
+      <div><label>Size (sqft)</label><input class="fi" id="nl-sqft" type="number" placeholder="e.g. 60"/></div>
+    </div>
+    <div class="frow">
+      <div><label>Bedrooms</label><select class="fi" id="nl-beds"><option>1</option><option>2</option><option>3</option></select></div>
+      <div><label>Bathrooms</label><select class="fi" id="nl-baths"><option>1</option><option>2</option><option>3</option></select></div>
+    </div>
+    <label>Description</label>
+    <textarea class="fi" id="nl-desc" placeholder="Describe your property..."></textarea>
+    <button class="btn ba" style="width:100%" onclick="submitNewListing()">Publish Listing</button>`);
+}
+function submitNewListing(){
+  const title=document.getElementById('nl-title').value.trim();
+  const price=document.getElementById('nl-price').value;
+  if(!title||!price){toast('Please fill in title and price');return;}
+  const newL={id:rentalListingsData.length,name:{en:title,ar:title},price:parseInt(price),views:0,applicants:0,status:'underReview'};
+  rentalListingsData.push(newL);
+  closeModal(); toast('Listing submitted for review ✓');
+  renderRentalListings();
+}
+function openEditModal(id){
+  const l=rentalListingsData.find(x=>x.id===id);
+  openModal(`${t('editListing')}: ${l.name[S.locale]}`,`
+    <label>Title</label><input class="fi" id="el-title" value="${l.name.en}"/>
+    <div class="frow">
+      <div><label>Price (EGP/mo)</label><input class="fi" id="el-price" type="number" value="${l.price}"/></div>
+      <div><label>Status</label>
+        <select class="fi" id="el-status">
+          <option value="active" ${l.status==='active'?'selected':''}>Active</option>
+          <option value="underReview" ${l.status==='underReview'?'selected':''}>Under Review</option>
+        </select></div>
+    </div>
+    <label>Notes</label><textarea class="fi" placeholder="Internal notes..."></textarea>
+    <div style="display:flex;gap:.6rem;margin-top:.3rem">
+      <button class="btn ba" style="flex:1" onclick="saveEdit(${id})">Save Changes</button>
+      <button class="btn bg" style="flex:1;color:#fb7185;border-color:rgba(244,63,94,.3)" onclick="if(confirm('Remove this listing?')){removeListing(${id})}">Remove</button>
+    </div>`);
+}
+function saveEdit(id){
+  const l=rentalListingsData.find(x=>x.id===id);
+  const title=document.getElementById('el-title').value.trim();
+  const price=parseInt(document.getElementById('el-price').value);
+  const status=document.getElementById('el-status').value;
+  if(!title||!price){toast('Title and price required');return;}
+  l.name={en:title,ar:title}; l.price=price; l.status=status;
+  closeModal(); toast('Listing updated ✓'); renderRentalListings();
+}
+function removeListing(id){
+  rentalListingsData=rentalListingsData.filter(l=>l.id!==id);
+  closeModal(); toast('Listing removed'); renderRentalListings();
+}
+function openViewsModal(){
+  openModal(t('totalViews'),`
+    <div class="rstat"><span>${RENTAL_LISTINGS[0].name[S.locale]}</span><span class="rval">342</span></div>
+    <div class="rstat"><span>${RENTAL_LISTINGS[1].name[S.locale]}</span><span class="rval">215</span></div>
+    <div class="rstat"><span>${RENTAL_LISTINGS[2].name[S.locale]}</span><span class="rval">88</span></div>
+    <div class="rstat"><span>${RENTAL_LISTINGS[3].name[S.locale]}</span><span class="rval">0</span></div>
+    <div style="margin-top:1rem;padding:.75rem;background:rgba(6,182,212,.07);border:1px solid rgba(6,182,212,.2);border-radius:.5rem;font-size:.78rem;color:#22d3ee">
+      📈 Total views up 34% compared to last month.
+    </div>`);
+}
+function openRentalAppDetail(id){
+  const a=RENTAL_APPS.find(x=>x.id===id);
+  openModal('Application from '+a.student,`
+    <div style="display:flex;align-items:center;gap:.9rem;margin-bottom:1.1rem">
+      <div class="rav" style="width:2.8rem;height:2.8rem;font-size:.8rem">${a.initials}</div>
+      <div><div style="font-weight:700">${a.student}</div><div style="font-size:.76rem;color:rgb(var(--muted))">${a.listing[S.locale]} · ${a.date}</div></div>
+    </div>
+    <div class="rstat"><span>Status</span><span class="rval">${t(a.status)}</span></div>
+    <p style="font-size:.82rem;color:rgb(var(--muted));margin:.9rem 0;line-height:1.6">"${a.msg}"</p>
+    <div style="display:flex;gap:.6rem;margin-top:.5rem">
+      <button class="btn be" style="flex:1" onclick="toast('Applicant approved ✓');closeModal()">✓ Approve</button>
+      <button class="btn" style="flex:1;background:rgba(244,63,94,.15);color:#fb7185;border:1px solid rgba(244,63,94,.3)" onclick="toast('Application declined');closeModal()">✕ Decline</button>
+    </div>`);
+}
+function renderRevBars(){
+  const el=document.getElementById('rev-bars');
+  const mn=document.getElementById('rev-months');
+  const maxV=Math.max(...REV.filter(v=>v>0));
+  el.innerHTML=REV.map((v,i)=>{
+    const h=v?Math.round(v/maxV*100):8;
+    const label=v?`${MONTHS[S.locale][i]}: EGP ${v.toLocaleString()}`:`${MONTHS[S.locale][i]}: No data`;
+    return `<div class="bar bar-a" style="height:${h}%;${!v?'opacity:.2':''}" onclick="toast('${label}')" title="${label}"></div>`;
+  }).join('');
+  mn.innerHTML=MONTHS[S.locale].map(m=>`<span>${m}</span>`).join('');
+}
+
+// ════════════════════════════════ INIT ════════════════════════════════
+function renderAll(){
+  renderAdminBars(); renderActivity();
+  renderListings(); renderApps();
+  renderRentalListings(); renderRevBars();
+}
+setLocale(S.locale);
+</script>
+</body>
+</html>
