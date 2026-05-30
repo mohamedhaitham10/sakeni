@@ -46,20 +46,7 @@ interface Application {
   lease: string;
 }
 
-const LISTINGS: Listing[] = [
-  { id:0,  name:{en:"Studio near Cairo University",       ar:"استوديو قرب جامعة القاهرة"},     loc:{en:"Giza, Dokki",             ar:"الجيزة، الدقي"},           city:"Giza",       nearUniversity:"Cairo University",               price:4500,  deposit:4500,  beds:1, baths:1, sqft:40,  furnished:true,  utilities:true,  gender:"any",    tags:["Furnished","Bills Incl.","Near Cairo Uni"], accent:"emerald", photo:"https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=400&h=200&fit=crop" },
-  { id:1,  name:{en:"Furnished 2BR – Zamalek",           ar:"شقة مفروشة غرفتين – الزمالك"},    loc:{en:"Cairo, Zamalek",          ar:"القاهرة، الزمالك"},        city:"Cairo",      nearUniversity:"American University in Cairo (AUC)", price:9000,  deposit:18000, beds:2, baths:2, sqft:95,  furnished:true,  utilities:false, gender:"any",    tags:["Furnished","Nile View","Premium"],          accent:"indigo",  photo:"https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=400&h=200&fit=crop" },
-  { id:2,  name:{en:"Shared Room – Nasr City",           ar:"غرفة مشتركة – مدينة نصر"},        loc:{en:"Cairo, Nasr City",        ar:"القاهرة، مدينة نصر"},      city:"Cairo",      nearUniversity:"Ain Shams University",              price:2200,  deposit:2200,  beds:1, baths:1, sqft:22,  furnished:true,  utilities:true,  gender:"male",   tags:["Male Only","Bills Incl.","Shared"],          accent:"sky",     photo:"https://images.unsplash.com/photo-1540518614846-7eded433c457?w=400&h=200&fit=crop" },
-  { id:3,  name:{en:"Modern 1BR – New Cairo",            ar:"شقة حديثة – القاهرة الجديدة"},    loc:{en:"Cairo, New Cairo",        ar:"القاهرة، القاهرة الجديدة"},city:"Cairo",      nearUniversity:"American University in Cairo (AUC)", price:6500,  deposit:6500,  beds:1, baths:1, sqft:70,  furnished:false, utilities:false, gender:"any",    tags:["Near AUC","Parking","New Building"],         accent:"amber",   photo:"https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop" },
-  { id:4,  name:{en:"3BR Family Flat – Giza",      ar:"شقة عائلية 3 غرف – الجيزة"},  loc:{en:"Giza, Mohandessin",  ar:"الجيزة، المهندسين"},    city:"Giza", nearUniversity:"Cairo University",             price:7000,  deposit:7000,  beds:3, baths:2, sqft:130, furnished:false, utilities:false, gender:"any",    tags:["Spacious","Central"],                       accent:"blue",    photo:"https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=400&h=200&fit=crop" },
-  { id:5,  name:{en:"Cozy Studio – Maadi",               ar:"استوديو مريح – المعادي"},          loc:{en:"Cairo, Maadi",            ar:"القاهرة، المعادي"},        city:"Cairo",      nearUniversity:"German University in Cairo (GUC)",  price:5000,  deposit:5000,  beds:1, baths:1, sqft:45,  furnished:true,  utilities:false, gender:"any",    tags:["Furnished","Quiet Area","Garden"],           accent:"violet",  photo:"https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=400&h=200&fit=crop" },
-  { id:6,  name:{en:"1BR near AUC Campus",               ar:"شقة غرفة قرب الجامعة الأمريكية"}, loc:{en:"Cairo, Fifth Settlement", ar:"القاهرة، التجمع الخامس"},  city:"Cairo",      nearUniversity:"American University in Cairo (AUC)", price:7500,  deposit:7500,  beds:1, baths:1, sqft:65,  furnished:true,  utilities:false, gender:"any",    tags:["Near AUC","Furnished","24/7 Security"],      accent:"rose",    photo:"https://images.unsplash.com/photo-1484154218962-a197022b5858?w=400&h=200&fit=crop" },
-  { id:7,  name:{en:"2BR with Nile View – Agouza",       ar:"شقة غرفتين بإطلالة على النيل"},    loc:{en:"Cairo, Agouza",           ar:"القاهرة، العجوزة"},        city:"Cairo",      nearUniversity:"Cairo University",               price:12000, deposit:24000, beds:2, baths:2, sqft:110, furnished:true,  utilities:false, gender:"any",    tags:["Nile View","Furnished","Premium"],           accent:"cyan",    photo:"https://images.unsplash.com/photo-1545324418-cc1a3fa10c00?w=400&h=200&fit=crop" },
-  { id:8,  name:{en:"Budget Room – Heliopolis",          ar:"غرفة اقتصادية – مصر الجديدة"},    loc:{en:"Cairo, Heliopolis",       ar:"القاهرة، مصر الجديدة"},    city:"Cairo",      nearUniversity:"Ain Shams University",              price:1800,  deposit:1800,  beds:1, baths:1, sqft:18,  furnished:true,  utilities:true,  gender:"female", tags:["Female Only","Bills Incl.","Budget"],        accent:"pink",    photo:"https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=200&fit=crop" },
-  { id:9,  name:{en:"Furnished Studio – 6th October",    ar:"استوديو مفروش – 6 أكتوبر"},       loc:{en:"Giza, 6th October",       ar:"الجيزة، 6 أكتوبر"},        city:"Giza",       nearUniversity:"October University (MUST)",         price:4000,  deposit:4000,  beds:1, baths:1, sqft:42,  furnished:true,  utilities:false, gender:"any",    tags:["Furnished","New Building"],                  accent:"teal",    photo:"https://images.unsplash.com/photo-1574362848149-11496d93a7c7?w=400&h=200&fit=crop" },
-  { id:10, name:{en:"3BR Penthouse – Sheikh Zayed",      ar:"بنتهاوس 3 غرف – الشيخ زايد"},     loc:{en:"Giza, Sheikh Zayed",      ar:"الجيزة، الشيخ زايد"},      city:"Giza",       nearUniversity:"October University (MUST)",         price:18000, deposit:36000, beds:3, baths:3, sqft:200, furnished:true,  utilities:false, gender:"any",    tags:["Premium","Pool","Gym","Furnished"],          accent:"orange",  photo:"https://images.unsplash.com/photo-1512917774080-9991f1c4c750?w=400&h=200&fit=crop" },
-  { id:11, name:{en:"Shared Apartment – Girls Only",     ar:"شقة مشتركة للبنات"},               loc:{en:"Cairo, Mohandessin",      ar:"القاهرة، المهندسين"},      city:"Cairo",      nearUniversity:"Cairo University",               price:3000,  deposit:3000,  beds:1, baths:1, sqft:25,  furnished:true,  utilities:true,  gender:"female", tags:["Female Only","Bills Incl.","Safe Area"],     accent:"fuchsia", photo:"https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=200&fit=crop" },
-];
+const LISTINGS: Listing[] = [];
 
 const ACCENT_BG: Record<string, string> = {
   emerald:"from-emerald-500/25 to-teal-500/10",   indigo:"from-indigo-500/25 to-purple-500/10",
@@ -77,12 +64,8 @@ const UNIVERSITIES = [
   "Misr International University (MIU)","Future University in Egypt (FUE)",
 ];
 
-const INIT_SAVED = [0,1,3,5,6,7,8,9];
-const INIT_APPS: Application[] = [
-  { id:1, listingId:0, status:"pending",  date:"2026-05-01", message:"3rd-year CS student at Cairo University, looking for quiet place near campus.", name:"Student User", university:"Cairo University", phone:"01012345678", lease:"12 months" },
-  { id:2, listingId:1, status:"approved", date:"2026-04-20", message:"Graduate student, very tidy and quiet. References available on request.",       name:"Student User", university:"Cairo University", phone:"01012345678", lease:"12 months" },
-  { id:3, listingId:3, status:"declined", date:"2026-04-10", message:"2nd-year Medical student. Non-smoker. Looking for 6-month lease.",               name:"Student User", university:"Cairo University", phone:"01012345678", lease:"6 months"  },
-];
+const INIT_SAVED: number[] = [];
+const INIT_APPS: Application[] = [];
 
 const EN = {
   brand:"SAKENI", student:"Student", findYourHome:"Find Your Perfect Home",
@@ -166,11 +149,55 @@ export default function StudentPage() {
   const [authUser, setAuthUser] = useState<AuthUser | null>(null);
   const [authLoaded, setAuthLoaded] = useState(false);
   const sortRef = useRef<HTMLDivElement>(null);
+  const [listingsList, setListingsList] = useState<Listing[]>([]);
 
   useEffect(() => {
     setLocale((document.documentElement.lang as Locale) || "en");
     setAuthUser(getAuth("student"));
     setAuthLoaded(true);
+  }, []);
+
+  useEffect(() => {
+    try {
+      const ls = localStorage.getItem("sk_ll_listings");
+      if (ls) {
+        interface LLListing {
+          id: number;
+          name: string;
+          city: string;
+          district: string;
+          price: number;
+          sqft: number;
+          beds: number;
+          baths: number;
+          photos: string[];
+        }
+        const parsed = JSON.parse(ls) as LLListing[];
+        const formatted: Listing[] = parsed.map((l: LLListing) => ({
+          id: l.id,
+          name: { en: l.name, ar: l.name },
+          loc: { en: `${l.city}, ${l.district}`, ar: `${l.city === "Cairo" ? "القاهرة" : "الجيزة"}، ${l.district}` },
+          city: l.city,
+          nearUniversity: "Cairo University",
+          price: l.price,
+          deposit: l.price,
+          beds: l.beds,
+          baths: l.baths,
+          sqft: l.sqft,
+          furnished: true,
+          utilities: false,
+          gender: "any",
+          tags: ["Dynamic"],
+          accent: "indigo",
+          photo: l.photos[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop"
+        }));
+        setListingsList(formatted);
+      } else {
+        setListingsList([]);
+      }
+    } catch {
+      setListingsList([]);
+    }
   }, []);
 
   useEffect(() => {
@@ -204,7 +231,7 @@ export default function StudentPage() {
   const clearFilters = () => { setFPrice(""); setFCity(""); setFBeds(""); setFFurnish(""); setFUniversity(""); setQuery(""); };
 
   const filtered = useMemo(() => {
-    let r = [...LISTINGS];
+    let r = [...listingsList];
     const q = query.toLowerCase().trim();
     if (q) r = r.filter(l =>
       l.name[locale].toLowerCase().includes(q) ||
@@ -221,13 +248,13 @@ export default function StudentPage() {
     if (sortKey === "price-desc") r.sort((a,b) => b.price - a.price);
     if (sortKey === "size-desc")  r.sort((a,b) => b.sqft  - a.sqft);
     return r;
-  }, [query, fPrice, fCity, fBeds, fFurnish, fUniversity, sortKey, locale]);
+  }, [listingsList, query, fPrice, fCity, fBeds, fFurnish, fUniversity, sortKey, locale]);
 
   const visibleListings = useMemo(() => {
-    if (tab === "saved")    return LISTINGS.filter(l => saved.has(l.id));
-    if (tab === "featured") return LISTINGS.slice(0, 6);
+    if (tab === "saved")    return listingsList.filter(l => saved.has(l.id));
+    if (tab === "featured") return listingsList.slice(0, 6);
     return filtered;
-  }, [tab, saved, filtered]);
+  }, [listingsList, tab, saved, filtered]);
 
   const toggleSave = (id: number) => {
     setSaved(prev => {

@@ -53,17 +53,11 @@ const T = {
 } as const;
 
 /* ─── Static data ───────────────────────────────────────── */
-const BAR_H   = [35,50,42,65,55,72,60,80,70,88,75,95];
-const REV_VAL = [28400,31200,35100,39800,42100,45231,0,0,0,0,0,0];
+const BAR_H: number[] = [];
+const REV_VAL: number[] = [];
 
 interface Activity { u: string; m: number; }
-const ACTIVITY: Activity[] = [
-  {u:"Ahmed H.",   m:2},
-  {u:"Sara M.",    m:4},
-  {u:"Omar K.",    m:6},
-  {u:"Nour A.",    m:8},
-  {u:"Youssef S.", m:10},
-];
+const ACTIVITY: Activity[] = [];
 
 /* ─── Sub-components (module-level to avoid parser issues) ─ */
 function Field({label, value}: {label:string; value:string}) {
@@ -127,6 +121,19 @@ export default function AdminPage() {
 
   useEffect(() => {
     setLocale((document.documentElement.lang as Locale) || "en");
+  }, []);
+
+  useEffect(() => {
+    try {
+      const llListings = localStorage.getItem("sk_ll_listings");
+      if (llListings && llListings.includes("Studio – Dokki, Giza")) {
+        localStorage.removeItem("sk_ll_listings");
+        localStorage.removeItem("sk_ll_applicants");
+        localStorage.removeItem("sk_saved");
+        localStorage.removeItem("sk_apps");
+        localStorage.removeItem("sk_admin_users");
+      }
+    } catch {}
   }, []);
 
   const t    = T[locale];

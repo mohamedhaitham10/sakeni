@@ -107,23 +107,12 @@ const AR: typeof EN = {
   myProfile:"ملفي الشخصي", signOut:"تسجيل الخروج", noPhotos:"لا توجد صور بعد",
 };
 
-const BAR_H   = [40,55,45,70,60,80,65,90,75,95,85,100];
-const BAR_REV = [6500,7200,6800,8100,7500,9000,8200,10500,9200,11000,10100,13500];
+const BAR_H: number[] = [];
+const BAR_REV: number[] = [];
 
-const INIT_LISTINGS: Listing[] = [
-  { id:1, name:"Studio – Dokki, Giza",          city:"Giza",  district:"Dokki",     price:4500, sqft:45,  beds:1, baths:1, description:"Cozy studio near Cairo University.",        views:342, applicants:7, status:"active",      photos:["https://images.unsplash.com/photo-1555854877-bab0e564b8d5?w=600&h=400&fit=crop","https://images.unsplash.com/photo-1540518614846-7eded433c457?w=600&h=400&fit=crop"] },
-  { id:2, name:"2BR Apartment – Zamalek, Cairo", city:"Cairo", district:"Zamalek",   price:9000, sqft:110, beds:2, baths:2, description:"Spacious apartment in quiet Zamalek street.", views:215, applicants:4, status:"active",      photos:["https://images.unsplash.com/photo-1502672260266-1c1ef2d93688?w=600&h=400&fit=crop","https://images.unsplash.com/photo-1484154218962-a197022b5858?w=600&h=400&fit=crop","https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=600&h=400&fit=crop"] },
-  { id:3, name:"Shared Room – Nasr City",        city:"Cairo", district:"Nasr City", price:2200, sqft:25,  beds:1, baths:1, description:"Shared flat, all utilities included.",       views:88,  applicants:2, status:"underReview", photos:[] },
-  { id:4, name:"1BR – New Cairo",                city:"Cairo", district:"New Cairo",  price:6500, sqft:75,  beds:1, baths:1, description:"Brand new apartment near AUC.",             views:0,   applicants:0, status:"underReview", photos:[] },
-];
+const INIT_LISTINGS: Listing[] = [];
 
-const INIT_APPLICANTS: Applicant[] = [
-  { id:1, listingId:1, name:"Ahmed Hassan",  university:"Cairo University",    phone:"01012345678", moveIn:"2026-06-01", lease:"12 months", message:"3rd year engineering student looking for quiet place to study.", status:"pending"  },
-  { id:2, listingId:1, name:"Sara Mohamed",  university:"Ain Shams University", phone:"01198765432", moveIn:"2026-07-01", lease:"6 months",  message:"Clean and responsible tenant, references available.",          status:"pending"  },
-  { id:3, listingId:2, name:"Omar Khalil",   university:"AUC",                  phone:"01234567890", moveIn:"2026-06-15", lease:"12 months", message:"Looking for a long-term place near campus.",                   status:"pending"  },
-  { id:4, listingId:2, name:"Nour Ahmed",    university:"GUC",                  phone:"01567891234", moveIn:"2026-08-01", lease:"9 months",  message:"Graduate student, very tidy.",                                status:"pending"  },
-  { id:5, listingId:3, name:"Youssef Samir", university:"Helwan University",    phone:"01099887766", moveIn:"2026-06-01", lease:"6 months",  message:"I work part-time and study full-time.",                       status:"pending"  },
-];
+const INIT_APPLICANTS: Applicant[] = [];
 
 const EMPTY_FORM = {
   name:"", city:"Cairo", district:"", price:"", sqft:"", beds:"1", baths:"1",
@@ -494,7 +483,7 @@ export default function LandlordPage() {
             <div className="flex gap-6 text-sm">
               <div>
                 <p className="text-xs text-muted-foreground">{t.totalEarned}</p>
-                <p className="font-bold text-xl text-amber-400 mt-0.5">EGP 107,000</p>
+                <p className="font-bold text-xl text-amber-400 mt-0.5">EGP {(monthlyRev * 2).toLocaleString()}</p>
               </div>
               <div>
                 <p className="text-xs text-muted-foreground">{t.thisMonth}</p>
