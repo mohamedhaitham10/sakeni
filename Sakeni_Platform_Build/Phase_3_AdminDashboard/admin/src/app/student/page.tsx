@@ -390,7 +390,10 @@ export default function StudentPage() {
   const handleSignOut = () => {
     import("@/components/KYCModal").then(({ clearAuth }) => {
       clearAuth("student");
+      localStorage.removeItem("sk_saved");
+      localStorage.removeItem("sk_apps");
       setAuthUser(null);
+      window.location.reload();
     });
   };
 
@@ -409,6 +412,14 @@ export default function StudentPage() {
         </h1>
         <div className="flex items-center gap-2">
           <LanguageSwitcher currentLocale={locale} />
+          {authUser && (
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-rose-500/30 bg-rose-500/10 text-rose-400 rounded-lg text-xs font-semibold hover:bg-rose-500/20 transition-all mr-1"
+            >
+              {t.signOut}
+            </button>
+          )}
           <button onClick={() => setProfileOpen(true)} className="h-9 w-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-500/40 hover:scale-105 transition-transform">
             {authUser?.avatar ?? "ST"}
           </button>

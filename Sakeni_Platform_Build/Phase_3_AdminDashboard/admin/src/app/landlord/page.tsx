@@ -261,7 +261,10 @@ export default function LandlordPage() {
   const handleSignOut = () => {
     import("@/components/KYCModal").then(({ clearAuth }) => {
       clearAuth("landlord");
+      localStorage.removeItem("sk_ll_listings");
+      localStorage.removeItem("sk_ll_applicants");
       setAuthUser(null);
+      window.location.reload();
     });
   };
 
@@ -281,6 +284,14 @@ export default function LandlordPage() {
         </h1>
         <div className="flex items-center gap-2">
           <LanguageSwitcher currentLocale={locale}/>
+          {authUser && (
+            <button
+              onClick={handleSignOut}
+              className="inline-flex items-center justify-center px-3 py-1.5 border border-rose-500/30 bg-rose-500/10 text-rose-400 rounded-lg text-xs font-semibold hover:bg-rose-500/20 transition-all mr-1"
+            >
+              {t.signOut}
+            </button>
+          )}
           <button
             onClick={() => setProfileOpen(true)}
             className="h-9 w-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-amber-500/40 cursor-pointer hover:scale-105 transition-transform"
