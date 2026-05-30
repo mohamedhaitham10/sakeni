@@ -46,7 +46,7 @@ interface Application {
   lease: string;
 }
 
-const LISTINGS: Listing[] = [];
+
 
 const ACCENT_BG: Record<string, string> = {
   emerald:"from-emerald-500/25 to-teal-500/10",   indigo:"from-indigo-500/25 to-purple-500/10",
@@ -301,92 +301,10 @@ export default function StudentPage() {
     declined: { label: t.appsDeclined, cls: "bg-rose-500/15 text-rose-400 border-rose-500/30"   },
   };
 
-  function ListingCard({ l }: { l: Listing }) {
-    const bg = ACCENT_BG[l.accent] ?? ACCENT_BG.emerald;
-    return (
-      <div className="glass-card overflow-hidden flex flex-col">
-        {/* Photo / gradient header */}
-        <div
-          className="h-40 relative overflow-hidden cursor-pointer"
-          onClick={() => setViewTarget(l)}
-        >
-          <img
-            src={l.photo}
-            alt={l.name[locale]}
-            className="absolute inset-0 w-full h-full object-cover"
-            onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
-          />
-          <div className={`absolute inset-0 bg-gradient-to-br ${bg} ${l.photo ? "opacity-40" : "opacity-100"}`} />
-          <Home className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/10 pointer-events-none" />
-          <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-1.5 flex-wrap z-10">
-            {l.furnished  && <span className="text-[10px] bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2 py-0.5 rounded-full">Furnished</span>}
-            {l.utilities  && <span className="text-[10px] bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2 py-0.5 rounded-full">Bills Incl.</span>}
-            {l.gender !== "any" && <span className="text-[10px] bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2 py-0.5 rounded-full capitalize">{l.gender} Only</span>}
-          </div>
-        </div>
-
-        <div className="p-4 flex flex-col gap-3 flex-1">
-          <div className="flex justify-between items-start gap-2">
-            <div className="flex-1 min-w-0">
-              <p className="font-semibold text-sm leading-snug cursor-pointer hover:text-emerald-400 transition-colors truncate" onClick={() => setViewTarget(l)}>{l.name[locale]}</p>
-              <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><MapPin className="w-3 h-3 shrink-0"/>{l.loc[locale]}</p>
-            </div>
-            <div className="text-right shrink-0">
-              <p className="text-emerald-400 font-bold text-sm">EGP {l.price.toLocaleString()}</p>
-              <p className="text-muted-foreground text-[11px]">{t.perMonth}</p>
-            </div>
-          </div>
-
-          <div className="flex gap-3 text-xs text-muted-foreground">
-            <span className="flex items-center gap-1"><Bed  className="w-3 h-3"/>{l.beds}  {t.beds}</span>
-            <span className="flex items-center gap-1"><Bath className="w-3 h-3"/>{l.baths} {t.baths}</span>
-            <span className="flex items-center gap-1"><Square className="w-3 h-3"/>{l.sqft} {t.sqm}</span>
-          </div>
-
-          <p className="text-xs text-muted-foreground">{t.depositLabel}: <span className="text-white/60 font-medium">EGP {l.deposit.toLocaleString()}</span></p>
-
-          <div className="flex gap-2 mt-auto">
-            <button
-              onClick={() => openApply(l)}
-              disabled={appliedIds.has(l.id)}
-              className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${appliedIds.has(l.id) ? "bg-white/8 text-muted-foreground cursor-default" : "bg-emerald-600 hover:bg-emerald-500 text-white"}`}
-            >
-              {appliedIds.has(l.id) ? t.appliedBtn : t.applyNow}
-            </button>
-            <button
-              onClick={() => openListingChat(l.id, l.name["en"])}
-              className="p-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all"
-              title={t.chatBtn}
-            >
-              <MessageCircle className="w-4 h-4"/>
-            </button>
-            <button
-              onClick={() => toggleSave(l.id)}
-              className={`p-2 rounded-lg border transition-all ${saved.has(l.id) ? "border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20" : "border-white/10 text-muted-foreground hover:text-rose-400 hover:border-rose-500/30"}`}
-            >
-              <Heart className={`w-4 h-4 ${saved.has(l.id) ? "fill-current" : ""}`}/>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  function InputField({ label, field, type="text", placeholder="" }: { label:string; field:keyof typeof BLANK_FORM; type?:string; placeholder?:string }) {
-    return (
-      <div>
-        <label className="block text-xs text-muted-foreground mb-1 font-medium">{label}</label>
-        <input
-          type={type}
-          value={form[field]}
-          onChange={setField(field)}
-          placeholder={placeholder}
-          className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm focus:outline-none transition-all ${formErrors[field] ? "border-rose-500/60" : "border-white/10 focus:border-emerald-500/50"}`}
-        />
-        {formErrors[field] && <p className="text-rose-400 text-xs mt-1">{formErrors[field]}</p>}
-      </div>
-    );
-  }
+  const handleInputChange = (field: keyof typeof BLANK_FORM, value: string) => {
+    setForm(f => ({ ...f, [field]: value }));
+    setFormErrors(fe => ({ ...fe, [field]: "" }));
+  };
 
   const handleSignOut = () => {
     import("@/components/KYCModal").then(({ clearAuth }) => {
@@ -492,30 +410,54 @@ export default function StudentPage() {
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1.5 font-medium">{t.cityLabel}</label>
-                <select value={fCity} onChange={e => setFCity(e.target.value)} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all">
-                  <option value="">All cities</option>
-                  <option>Cairo</option><option>Giza</option>
+                <select
+                  value={fCity}
+                  onChange={e => setFCity(e.target.value)}
+                  className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all text-white"
+                >
+                  <option value="" className="bg-[#12122b] text-white">All cities</option>
+                  <option value="Cairo" className="bg-[#12122b] text-white">Cairo</option>
+                  <option value="Giza" className="bg-[#12122b] text-white">Giza</option>
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1.5 font-medium">{t.bedsLabel}</label>
-                <select value={fBeds} onChange={e => setFBeds(e.target.value)} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all">
-                  <option value="">Any</option>
-                  <option value="1">1 Bed</option><option value="2">2 Beds</option><option value="3+">3+ Beds</option>
+                <select
+                  value={fBeds}
+                  onChange={e => setFBeds(e.target.value)}
+                  className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all text-white"
+                >
+                  <option value="" className="bg-[#12122b] text-white">Any</option>
+                  <option value="1" className="bg-[#12122b] text-white">1 Bed</option>
+                  <option value="2" className="bg-[#12122b] text-white">2 Beds</option>
+                  <option value="3+" className="bg-[#12122b] text-white">3+ Beds</option>
                 </select>
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1.5 font-medium">{t.furnishedLabel}</label>
-                <select value={fFurnish} onChange={e => setFFurnish(e.target.value)} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all">
-                  <option value="">Any</option>
-                  <option value="yes">Furnished</option><option value="no">Unfurnished</option>
+                <select
+                  value={fFurnish}
+                  onChange={e => setFFurnish(e.target.value)}
+                  className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all text-white"
+                >
+                  <option value="" className="bg-[#12122b] text-white">Any</option>
+                  <option value="yes" className="bg-[#12122b] text-white">Furnished</option>
+                  <option value="no" className="bg-[#12122b] text-white">Unfurnished</option>
                 </select>
               </div>
               <div className="col-span-2">
                 <label className="block text-xs text-muted-foreground mb-1.5 font-medium">{t.uniLabel}</label>
-                <select value={fUniversity} onChange={e => setFUniversity(e.target.value)} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all">
-                  <option value="">All universities</option>
-                  {UNIVERSITIES.map(u => <option key={u} value={u}>{u}</option>)}
+                <select
+                  value={fUniversity}
+                  onChange={e => setFUniversity(e.target.value)}
+                  className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:border-emerald-500/40 transition-all text-white"
+                >
+                  <option value="" className="bg-[#12122b] text-white">All universities</option>
+                  {UNIVERSITIES.map(u => (
+                    <option key={u} value={u} className="bg-[#12122b] text-white">
+                      {u}
+                    </option>
+                  ))}
                 </select>
               </div>
               <div className="col-span-2 sm:col-span-3 flex justify-end gap-2">
@@ -568,7 +510,7 @@ export default function StudentPage() {
         <div className="flex gap-0.5 border-b border-white/8">
           {([
             ["featured",     `${t.tabFeatured}`],
-            ["all",          `${t.tabAll} (${LISTINGS.length})`],
+            ["all",          `${t.tabAll} (${listingsList.length})`],
             ["saved",        `${t.tabSaved} (${saved.size})`],
             ["applications", `${t.tabApps} (${apps.length})`],
           ] as [Tab,string][]).map(([id,label]) => (
@@ -590,13 +532,25 @@ export default function StudentPage() {
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {visibleListings.map(l => <ListingCard key={l.id} l={l}/>)}
+                {visibleListings.map(l => (
+                  <ListingCard
+                    key={l.id}
+                    l={l}
+                    locale={locale}
+                    t={t}
+                    appliedIds={appliedIds}
+                    saved={saved}
+                    toggleSave={toggleSave}
+                    openApply={openApply}
+                    setViewTarget={setViewTarget}
+                  />
+                ))}
               </div>
             )}
             {tab === "featured" && (
               <div className="text-center">
                 <button onClick={() => setTab("all")} className="inline-flex items-center gap-1 text-sm text-emerald-400 hover:text-emerald-300 border border-emerald-500/30 px-5 py-2 rounded-lg hover:bg-emerald-500/10 transition-all">
-                  {t.tabAll} ({LISTINGS.length}) <ChevronRight className="w-4 h-4"/>
+                  {t.tabAll} ({listingsList.length}) <ChevronRight className="w-4 h-4"/>
                 </button>
               </div>
             )}
@@ -613,7 +567,7 @@ export default function StudentPage() {
                 <button onClick={() => setTab("all")} className="text-sm text-emerald-400 hover:underline">{t.browseAll}</button>
               </div>
             ) : apps.map(a => {
-              const l = LISTINGS.find(x => x.id === a.listingId);
+              const l = listingsList.find(x => x.id === a.listingId);
               if (!l) return null;
               const sc = statusConfig[a.status];
               const bg = ACCENT_BG[l.accent] ?? ACCENT_BG.emerald;
@@ -662,9 +616,9 @@ export default function StudentPage() {
               <p className="font-semibold">{applyTarget.name[locale]}</p>
               <p className="text-emerald-400 mt-0.5">EGP {applyTarget.price.toLocaleString()} {t.perMonth} &nbsp;·&nbsp; {t.depositLabel}: EGP {applyTarget.deposit.toLocaleString()}</p>
             </div>
-            <InputField label={t.fullName}    field="name"       placeholder="e.g. Ahmed Hassan"/>
-            <InputField label={t.phone}       field="phone"      type="tel" placeholder="+20 1xx xxx xxxx"/>
-            <InputField label={t.university}  field="university" placeholder="e.g. Cairo University"/>
+            <InputField label={t.fullName} field="name" placeholder="e.g. Ahmed Hassan" form={form} formErrors={formErrors} onChange={handleInputChange} />
+            <InputField label={t.phone} field="phone" type="tel" placeholder="+20 1xx xxx xxxx" form={form} formErrors={formErrors} onChange={handleInputChange} />
+            <InputField label={t.university} field="university" placeholder="e.g. Cairo University" form={form} formErrors={formErrors} onChange={handleInputChange} />
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.moveIn}</label>
@@ -672,11 +626,15 @@ export default function StudentPage() {
               </div>
               <div>
                 <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.lease}</label>
-                <select value={form.lease} onChange={setField("lease")} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/40 transition-all">
-                  <option value="3 months">3 months</option>
-                  <option value="6 months">6 months</option>
-                  <option value="12 months">12 months</option>
-                  <option value="24 months">24 months</option>
+                <select
+                  value={form.lease}
+                  onChange={setField("lease")}
+                  className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-emerald-500/40 transition-all text-white"
+                >
+                  <option value="3 months" className="bg-[#12122b] text-white">3 months</option>
+                  <option value="6 months" className="bg-[#12122b] text-white">6 months</option>
+                  <option value="12 months" className="bg-[#12122b] text-white">12 months</option>
+                  <option value="24 months" className="bg-[#12122b] text-white">24 months</option>
                 </select>
               </div>
             </div>
@@ -778,6 +736,114 @@ export default function StudentPage() {
 
       {/* ── Chat Panel ── */}
       <ChatPanel role="student" myName={authUser?.name ?? "Student"} />
+    </div>
+  );
+}
+
+interface ListingCardProps {
+  l: Listing;
+  locale: Locale;
+  t: typeof EN;
+  appliedIds: Set<number>;
+  saved: Set<number>;
+  toggleSave: (id: number) => void;
+  openApply: (l: Listing) => void;
+  setViewTarget: (l: Listing) => void;
+}
+
+function ListingCard({ l, locale, t, appliedIds, saved, toggleSave, openApply, setViewTarget }: ListingCardProps) {
+  const bg = ACCENT_BG[l.accent] ?? ACCENT_BG.emerald;
+  return (
+    <div className="glass-card overflow-hidden flex flex-col">
+      {/* Photo / gradient header */}
+      <div
+        className="h-40 relative overflow-hidden cursor-pointer"
+        onClick={() => setViewTarget(l)}
+      >
+        <img
+          src={l.photo}
+          alt={l.name[locale]}
+          className="absolute inset-0 w-full h-full object-cover"
+          onError={e => { (e.target as HTMLImageElement).style.display = "none"; }}
+        />
+        <div className={`absolute inset-0 bg-gradient-to-br ${bg} ${l.photo ? "opacity-40" : "opacity-100"}`} />
+        <Home className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-12 h-12 text-white/10 pointer-events-none" />
+        <div className="absolute bottom-0 left-0 right-0 p-3 flex gap-1.5 flex-wrap z-10">
+          {l.furnished  && <span className="text-[10px] bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2 py-0.5 rounded-full">Furnished</span>}
+          {l.utilities  && <span className="text-[10px] bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2 py-0.5 rounded-full">Bills Incl.</span>}
+          {l.gender !== "any" && <span className="text-[10px] bg-black/50 backdrop-blur-sm border border-white/10 text-white/80 px-2 py-0.5 rounded-full capitalize">{l.gender} Only</span>}
+        </div>
+      </div>
+
+      <div className="p-4 flex flex-col gap-3 flex-1">
+        <div className="flex justify-between items-start gap-2">
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-sm leading-snug cursor-pointer hover:text-emerald-400 transition-colors truncate" onClick={() => setViewTarget(l)}>{l.name[locale]}</p>
+            <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><MapPin className="w-3 h-3 shrink-0"/>{l.loc[locale]}</p>
+          </div>
+          <div className="text-right shrink-0">
+            <p className="text-emerald-400 font-bold text-sm">EGP {l.price.toLocaleString()}</p>
+            <p className="text-muted-foreground text-[11px]">{t.perMonth}</p>
+          </div>
+        </div>
+
+        <div className="flex gap-3 text-xs text-muted-foreground">
+          <span className="flex items-center gap-1"><Bed  className="w-3 h-3"/>{l.beds}  {t.beds}</span>
+          <span className="flex items-center gap-1"><Bath className="w-3 h-3"/>{l.baths} {t.baths}</span>
+          <span className="flex items-center gap-1"><Square className="w-3 h-3"/>{l.sqft} {t.sqm}</span>
+        </div>
+
+        <p className="text-xs text-muted-foreground">{t.depositLabel}: <span className="text-white/60 font-medium">EGP {l.deposit.toLocaleString()}</span></p>
+
+        <div className="flex gap-2 mt-auto">
+          <button
+            onClick={() => openApply(l)}
+            disabled={appliedIds.has(l.id)}
+            className={`flex-1 py-2 rounded-lg text-sm font-semibold transition-all ${appliedIds.has(l.id) ? "bg-white/8 text-muted-foreground cursor-default" : "bg-emerald-600 hover:bg-emerald-500 text-white"}`}
+          >
+            {appliedIds.has(l.id) ? t.appliedBtn : t.applyNow}
+          </button>
+          <button
+            onClick={() => openListingChat(l.id, l.name["en"])}
+            className="p-2 rounded-lg border border-indigo-500/30 bg-indigo-500/10 text-indigo-400 hover:bg-indigo-500/20 transition-all"
+            title={t.chatBtn}
+          >
+            <MessageCircle className="w-4 h-4"/>
+          </button>
+          <button
+            onClick={() => toggleSave(l.id)}
+            className={`p-2 rounded-lg border transition-all ${saved.has(l.id) ? "border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20" : "border-white/10 text-muted-foreground hover:text-rose-400 hover:border-rose-500/30"}`}
+          >
+            <Heart className={`w-4 h-4 ${saved.has(l.id) ? "fill-current" : ""}`}/>
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+interface InputFieldProps {
+  label: string;
+  field: keyof typeof BLANK_FORM;
+  type?: string;
+  placeholder?: string;
+  form: typeof BLANK_FORM;
+  formErrors: Partial<typeof BLANK_FORM>;
+  onChange: (field: keyof typeof BLANK_FORM, value: string) => void;
+}
+
+function InputField({ label, field, type = "text", placeholder = "", form, formErrors, onChange }: InputFieldProps) {
+  return (
+    <div>
+      <label className="block text-xs text-muted-foreground mb-1 font-medium">{label}</label>
+      <input
+        type={type}
+        value={form[field]}
+        onChange={e => onChange(field, e.target.value)}
+        placeholder={placeholder}
+        className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm focus:outline-none transition-all ${formErrors[field] ? "border-rose-500/60" : "border-white/10 focus:border-emerald-500/50"}`}
+      />
+      {formErrors[field] && <p className="text-rose-400 text-xs mt-1">{formErrors[field]}</p>}
     </div>
   );
 }

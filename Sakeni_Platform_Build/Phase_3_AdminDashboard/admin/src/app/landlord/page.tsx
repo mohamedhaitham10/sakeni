@@ -107,8 +107,8 @@ const AR: typeof EN = {
   myProfile:"ملفي الشخصي", signOut:"تسجيل الخروج", noPhotos:"لا توجد صور بعد",
 };
 
-const BAR_H: number[] = [];
-const BAR_REV: number[] = [];
+const BAR_H = [40, 55, 45, 70, 60, 80, 65, 90, 75, 95, 85, 100];
+const BAR_REV = [6500, 7200, 6800, 8100, 7500, 9000, 8200, 10500, 9200, 11000, 10100, 13500];
 
 const INIT_LISTINGS: Listing[] = [];
 
@@ -242,21 +242,10 @@ export default function LandlordPage() {
     ? applicants.filter(a => a.listingId === filterListingId)
     : applicants;
 
-  function FormField({ label, name, type="text", placeholder="" }: { label:string; name:keyof typeof EMPTY_FORM; type?:string; placeholder?:string }) {
-    return (
-      <div>
-        <label className="block text-xs text-muted-foreground mb-1 font-medium">{label}</label>
-        <input
-          type={type}
-          value={form[name] as string}
-          onChange={e => { setForm(f => ({ ...f, [name]:e.target.value })); setFormErrors(fe => ({ ...fe, [name]:"" })); }}
-          placeholder={placeholder}
-          className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm focus:outline-none transition-all ${(formErrors as Record<string,string>)[name] ? "border-rose-500/60" : "border-white/10 focus:border-amber-500/40"}`}
-        />
-        {(formErrors as Record<string,string>)[name] && <p className="text-rose-400 text-xs mt-1">{(formErrors as Record<string,string>)[name]}</p>}
-      </div>
-    );
-  }
+  const handleFormChange = (name: keyof typeof EMPTY_FORM, value: string) => {
+    setForm(f => ({ ...f, [name]: value }));
+    setFormErrors(fe => ({ ...fe, [name]: "" }));
+  };
 
   const handleSignOut = () => {
     import("@/components/KYCModal").then(({ clearAuth }) => {
@@ -536,7 +525,7 @@ export default function LandlordPage() {
       {/* ── Add / Edit modal ── */}
       <Modal open={modal?.type==="add" || modal?.type==="edit"} title={modal?.type==="add" ? t.addListingTitle : t.editListingTitle} onClose={close}>
         <div className="space-y-3">
-          <FormField label={t.titleLabel}    name="name"       placeholder="e.g. Studio – Dokki, Giza"/>
+          <FormField label={t.titleLabel} name="name" placeholder="e.g. Studio – Dokki, Giza" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           <div className="grid grid-cols-2 gap-3">
             <div>
               <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.cityLabel}</label>
@@ -545,25 +534,29 @@ export default function LandlordPage() {
                 onChange={e => { setForm(f => ({ ...f, city: e.target.value })); }}
                 className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500/40 transition-all text-white"
               >
-                <option value="Cairo">Cairo</option>
-                <option value="Giza">Giza</option>
+                <option value="Cairo" className="bg-[#12122b] text-white">Cairo</option>
+                <option value="Giza" className="bg-[#12122b] text-white">Giza</option>
               </select>
             </div>
-            <FormField label={t.districtLabel} name="district"   placeholder="Zamalek"/>
+            <FormField label={t.districtLabel} name="district" placeholder="Zamalek" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={t.priceLabel}    name="price"      type="number" placeholder="4500"/>
-            <FormField label={t.sqftLabel}     name="sqft"       type="number" placeholder="60"/>
+            <FormField label={t.priceLabel} name="price" type="number" placeholder="4500" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
+            <FormField label={t.sqftLabel} name="sqft" type="number" placeholder="60" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           </div>
           <div className="grid grid-cols-2 gap-3">
-            <FormField label={t.bedsLabel}     name="beds"       type="number" placeholder="1"/>
-            <FormField label={t.bathsLabel}    name="baths"      type="number" placeholder="1"/>
+            <FormField label={t.bedsLabel} name="beds" type="number" placeholder="1" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
+            <FormField label={t.bathsLabel} name="baths" type="number" placeholder="1" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.statusLabel}</label>
-            <select value={form.status} onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))} className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500/40 transition-all">
-              <option value="underReview">{t.underReview}</option>
-              <option value="active">{t.active}</option>
+            <select
+              value={form.status}
+              onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))}
+              className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500/40 transition-all text-white"
+            >
+              <option value="underReview" className="bg-[#12122b] text-white">{t.underReview}</option>
+              <option value="active" className="bg-[#12122b] text-white">{t.active}</option>
             </select>
           </div>
           <div>
@@ -755,6 +748,32 @@ export default function LandlordPage() {
 
       {/* ── Chat Panel ── */}
       <ChatPanel role="landlord" myName={authUser?.name ?? "Landlord"} />
+    </div>
+  );
+}
+
+interface FormFieldProps {
+  label: string;
+  name: keyof typeof EMPTY_FORM;
+  type?: string;
+  placeholder?: string;
+  form: typeof EMPTY_FORM;
+  formErrors: Record<string, string>;
+  onChange: (name: keyof typeof EMPTY_FORM, value: string) => void;
+}
+
+function FormField({ label, name, type = "text", placeholder = "", form, formErrors, onChange }: FormFieldProps) {
+  return (
+    <div>
+      <label className="block text-xs text-muted-foreground mb-1 font-medium">{label}</label>
+      <input
+        type={type}
+        value={form[name] as string}
+        onChange={e => onChange(name, e.target.value)}
+        placeholder={placeholder}
+        className={`w-full bg-white/5 border rounded-lg px-3 py-2.5 text-sm focus:outline-none transition-all ${formErrors[name] ? "border-rose-500/60" : "border-white/10 focus:border-amber-500/40"}`}
+      />
+      {formErrors[name] && <p className="text-rose-400 text-xs mt-1">{formErrors[name]}</p>}
     </div>
   );
 }

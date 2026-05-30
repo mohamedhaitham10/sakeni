@@ -55,11 +55,16 @@ const T = {
 } as const;
 
 /* ─── Static data ───────────────────────────────────────── */
-const BAR_H: number[] = [];
-const REV_VAL: number[] = [];
+const BAR_H = [35, 50, 42, 65, 55, 72, 60, 80, 70, 88, 75, 95];
+const REV_VAL = [28400, 31200, 35100, 39800, 42100, 45231, 0, 0, 0, 0, 0, 0];
 
 interface Activity { u: string; m: number; }
-const ACTIVITY: Activity[] = [];
+const ACTIVITY: Activity[] = [
+  { u: "Sarah Ahmed", m: 5 },
+  { u: "Mohamed Aly", m: 12 },
+  { u: "Omar Kareem", m: 24 },
+  { u: "Yasmine Nour", m: 45 },
+];
 
 /* ─── Sub-components (module-level to avoid parser issues) ─ */
 function Field({label, value}: {label:string; value:string}) {
@@ -177,7 +182,11 @@ export default function AdminPage() {
   const showToast = (msg:string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
   const loadUsers = () => {
-    const initialSignups: PlatformUser[] = [];
+    const initialSignups: PlatformUser[] = [
+      { id: "1", name: "Ahmed Aly", type: "student", city: "Cairo", joined: "2 hours ago", status: "verified", email: "ahmed.aly@sakeni.eg", nationalId: "29901010101234", birthdate: "1999-01-01", gender: "Male", governorate: "Cairo" },
+      { id: "2", name: "Mona Hassan", type: "landlord", city: "Giza", joined: "5 hours ago", status: "pending", email: "mona.hassan@sakeni.eg", nationalId: "27805150105678", birthdate: "1978-05-15", gender: "Female", governorate: "Giza" },
+      { id: "3", name: "Khaled Omar", type: "student", city: "Cairo", joined: "1 day ago", status: "verified", email: "khaled.omar@sakeni.eg", nationalId: "29808080109012", birthdate: "1998-08-08", gender: "Male", governorate: "Cairo" },
+    ];
 
     const savedStatic = localStorage.getItem("sk_admin_users");
     let currentUsers = savedStatic ? JSON.parse(savedStatic) : initialSignups;
