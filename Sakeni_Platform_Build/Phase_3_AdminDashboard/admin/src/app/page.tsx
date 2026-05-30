@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { createClient } from "@supabase/supabase-js";
 import {
   Activity, CreditCard, DollarSign, Users,
   TrendingUp, Shield, Globe, ArrowUp,
@@ -55,7 +56,8 @@ const T = {
 const BAR_H   = [35,50,42,65,55,72,60,80,70,88,75,95];
 const REV_VAL = [28400,31200,35100,39800,42100,45231,0,0,0,0,0,0];
 
-const ACTIVITY = [
+interface Activity { u: string; m: number; }
+const ACTIVITY: Activity[] = [
   {u:"Ahmed H.",   m:2},
   {u:"Sara M.",    m:4},
   {u:"Omar K.",    m:6},
@@ -96,6 +98,33 @@ export default function AdminPage() {
   const [toast,  setToast]  = useState("");
   const [users,  setUsers]  = useState<PlatformUser[]>([]);
 
+  const [studentCount, setStudentCount] = useState(0);
+  const [landlordCount, setLandlordCount] = useState(0);
+  const [activeCount, setActiveCount] = useState(0);
+  const totalRevenue = landlordCount * 4500;
+
+  // Fetch counts from Supabase DB
+  useEffect(() => {
+    const fetchStats = async () => {
+      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
+      const { data, error } = await supabase.from('profiles').select('type, status');
+      if (error) {
+        console.error('Error fetching profiles:', error);
+        return;
+      }
+      let sCount = 0, lCount = 0, aCount = 0;
+      data?.forEach((p: { type: string; status: string }) => {
+        if (p.type === 'student') sCount++;
+        if (p.type === 'landlord') lCount++;
+        if (p.status === 'verified') aCount++;
+      });
+      setStudentCount(sCount);
+      setLandlordCount(lCount);
+      setActiveCount(aCount);
+    };
+    fetchStats();
+  }, []);
+
   useEffect(() => {
     setLocale((document.documentElement.lang as Locale) || "en");
   }, []);
@@ -105,16 +134,7 @@ export default function AdminPage() {
   const showToast = (msg:string) => { setToast(msg); setTimeout(() => setToast(""), 2500); };
 
   const loadUsers = () => {
-    const initialSignups = [
-      { id: "1", name: "Ahmed Hassan", type: "student", city: "Cairo", joined: "May 11", status: "verified", nationalId: "29901011234567", birthdate: "1999-01-01", gender: "Male", governorate: "Cairo", email: "ahmed@sakeni.eg" },
-      { id: "2", name: "Sara Mohamed", type: "landlord", city: "Giza", joined: "May 11", status: "verified", nationalId: "28503152123456", birthdate: "1985-03-15", gender: "Female", governorate: "Giza", email: "sara@sakeni.eg" },
-      { id: "3", name: "Omar Khalil", type: "student", city: "Cairo", joined: "May 10", status: "pending", nationalId: "29809210123456", birthdate: "1998-09-21", gender: "Male", governorate: "Cairo", email: "omar@sakeni.eg" },
-      { id: "4", name: "Nour Ahmed", type: "student", city: "Cairo", joined: "May 10", status: "verified", nationalId: "29912040123456", birthdate: "1999-12-04", gender: "Female", governorate: "Cairo", email: "nour@sakeni.eg" },
-      { id: "5", name: "Youssef Samir", type: "landlord", city: "Cairo", joined: "May 09", status: "verified", nationalId: "27708090123456", birthdate: "1977-08-09", gender: "Male", governorate: "Cairo", email: "youssef@sakeni.eg" },
-      { id: "6", name: "Laila Ibrahim", type: "student", city: "Giza", joined: "May 09", status: "pending", nationalId: "29907152123456", birthdate: "1999-07-15", gender: "Female", governorate: "Giza", email: "laila@sakeni.eg" },
-      { id: "7", name: "Karim Mostafa", type: "landlord", city: "Cairo", joined: "May 08", status: "verified", nationalId: "27304120123456", birthdate: "1973-04-12", gender: "Male", governorate: "Cairo", email: "karim@sakeni.eg" },
-      { id: "8", name: "Rana Adel", type: "student", city: "Cairo", joined: "May 08", status: "verified", nationalId: "29811050123456", birthdate: "1998-11-05", gender: "Female", governorate: "Cairo", email: "rana@sakeni.eg" },
-    ];
+    const initialSignups: PlatformUser[] = [];
 
     const savedStatic = localStorage.getItem("sk_admin_users");
     let currentUsers = savedStatic ? JSON.parse(savedStatic) : initialSignups;
@@ -199,14 +219,14 @@ export default function AdminPage() {
         <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm text-indigo-400">
           Sakeni Platform &middot; May 2026 Report
         </div>
-        <Field label={t.totalRev}          value="EGP 45,231"/>
-        <Field label={t.subs}              value="2,350"/>
-        <Field label={t.sales}             value="12,234"/>
-        <Field label={t.activeNow}         value="573"/>
-        <Field label="New Listings"        value="184"/>
-        <Field label="Avg. Rent (Cairo)"   value="EGP 6,200/mo"/>
-        <Field label="Student Sign-ups"    value="1,840"/>
-        <Field label="Landlord Sign-ups"   value="510"/>
+        <Field label={t.totalRev}          value={`EGP ${totalRevenue.toLocaleString()}`}/>
+        <Field label={t.subs}              value={`${studentCount + landlordCount}`}/>
+        <Field label={t.sales}             value={`EGP ${totalRevenue.toLocaleString()}`}/>
+        <Field label={t.activeNow}         value={`${activeCount}`}/>
+        <Field label="New Listings"        value="—"/>
+        <Field label="Avg. Rent (Cairo)"   value="—"/>
+        <Field label="Student Sign-ups"    value="—"/>
+        <Field label="Landlord Sign-ups"   value="—"/>
         <div className="flex gap-3 mt-5">
           <button
             onClick={() => { showToast("Report downloaded ✓"); close(); }}
@@ -328,14 +348,7 @@ export default function AdminPage() {
           <div
             className="glass-card p-5 group cursor-pointer"
             onClick={() => openCard(t.totalRev, (
-              <>
-                <Field label="January"        value="EGP 28,400"/>
-                <Field label="February"       value="EGP 31,200"/>
-                <Field label="March"          value="EGP 35,100"/>
-                <Field label="April"          value="EGP 39,800"/>
-                <Field label="May (current)"  value="EGP 45,231"/>
-                <Field label="Avg/listing"    value="EGP 6,200"/>
-              </>
+              <div className="text-sm">Revenue details are derived from the database.</div>
             ))}
           >
             <div className="flex justify-between items-start mb-3">
@@ -344,7 +357,7 @@ export default function AdminPage() {
                 <DollarSign className="w-5 h-5 text-emerald-400"/>
               </div>
             </div>
-            <h3 className="text-2xl font-bold tracking-tight mb-1.5">EGP 45,231</h3>
+            <h3 className="text-2xl font-bold tracking-tight mb-1.5">{`EGP ${totalRevenue.toLocaleString()}`}</h3>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <ArrowUp className="w-3 h-3 text-emerald-400"/> {t.trendRev}
             </p>
@@ -354,12 +367,7 @@ export default function AdminPage() {
           <div
             className="glass-card p-5 group cursor-pointer"
             onClick={() => openCard(t.subs, (
-              <>
-                <Field label="Student plans"       value="1,840"/>
-                <Field label="Landlord plans"      value="510"/>
-                <Field label="Trial accounts"      value="148"/>
-                <Field label="Growth vs last month"value="+180.1%"/>
-              </>
+              <div className="text-sm">Subscription statistics are derived from the database.</div>
             ))}
           >
             <div className="flex justify-between items-start mb-3">
@@ -368,7 +376,7 @@ export default function AdminPage() {
                 <Users className="w-5 h-5 text-indigo-400"/>
               </div>
             </div>
-            <h3 className="text-2xl font-bold tracking-tight mb-1.5">+2,350</h3>
+            <h3 className="text-2xl font-bold tracking-tight mb-1.5">{studentCount + landlordCount}</h3>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <ArrowUp className="w-3 h-3 text-emerald-400"/> {t.trendSubs}
             </p>
@@ -378,13 +386,7 @@ export default function AdminPage() {
           <div
             className="glass-card p-5 group cursor-pointer"
             onClick={() => openCard(t.sales, (
-              <>
-                <Field label="New rentals"    value="8,100"/>
-                <Field label="Renewals"       value="4,134"/>
-                <Field label="Cancellations"  value="−340"/>
-                <Field label="Net total"      value="+12,234"/>
-                <Field label="Conversion rate"value="4.8%"/>
-              </>
+              <div className="text-sm">Sales data are derived from the database.</div>
             ))}
           >
             <div className="flex justify-between items-start mb-3">
@@ -393,7 +395,7 @@ export default function AdminPage() {
                 <CreditCard className="w-5 h-5 text-purple-400"/>
               </div>
             </div>
-            <h3 className="text-2xl font-bold tracking-tight mb-1.5">+12,234</h3>
+            <h3 className="text-2xl font-bold tracking-tight mb-1.5">{`EGP ${totalRevenue.toLocaleString()}`}</h3>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <ArrowUp className="w-3 h-3 text-emerald-400"/> {t.trendSales}
             </p>
@@ -403,13 +405,7 @@ export default function AdminPage() {
           <div
             className="glass-card p-5 group cursor-pointer"
             onClick={() => openCard(t.activeNow, (
-              <>
-                <Field label="Students online"  value="391"/>
-                <Field label="Landlords online" value="182"/>
-                <Field label="Peak today"       value="812"/>
-                <Field label="vs last hour"     value="+201"/>
-                <Field label="Avg. session"     value="8m 24s"/>
-              </>
+              <div className="text-sm">Active user counts are derived from the database.</div>
             ))}
           >
             <div className="flex justify-between items-start mb-3">
@@ -418,7 +414,7 @@ export default function AdminPage() {
                 <Activity className="w-5 h-5 text-rose-400"/>
               </div>
             </div>
-            <h3 className="text-2xl font-bold tracking-tight mb-1.5">+573</h3>
+            <h3 className="text-2xl font-bold tracking-tight mb-1.5">{activeCount}</h3>
             <p className="text-xs text-muted-foreground flex items-center gap-1">
               <ArrowUp className="w-3 h-3 text-emerald-400"/> {t.trendActive}
             </p>
