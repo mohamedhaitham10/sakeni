@@ -44,6 +44,7 @@ interface Application {
   university: string;
   phone: string;
   lease: string;
+  moveIn: string;
 }
 
 
@@ -205,13 +206,13 @@ export default function StudentPage() {
     try {
       const s = localStorage.getItem("sk_saved");
       if (s) setSaved(new Set(JSON.parse(s)));
-      const a = localStorage.getItem("sk_apps");
+      const a = localStorage.getItem("sk_ll_applicants");
       if (a) setApps(JSON.parse(a));
     } catch { /* ignore */ }
   }, []);
 
   useEffect(() => { try { localStorage.setItem("sk_saved", JSON.stringify(Array.from(saved))); } catch { /* ignore */ } }, [saved]);
-  useEffect(() => { try { localStorage.setItem("sk_apps",  JSON.stringify(apps));       } catch { /* ignore */ } }, [apps]);
+  useEffect(() => { try { localStorage.setItem("sk_ll_applicants",  JSON.stringify(apps));       } catch { /* ignore */ } }, [apps]);
 
   useEffect(() => {
     const fn = (e: MouseEvent) => { if (sortRef.current && !sortRef.current.contains(e.target as Node)) setShowSort(false); };
@@ -285,6 +286,7 @@ export default function StudentPage() {
       date: new Date().toISOString().slice(0,10),
       message: form.message, name: form.name,
       university: form.university, phone: form.phone, lease: form.lease,
+      moveIn: form.moveIn || new Date().toISOString().slice(0,10),
     }, ...prev]);
     setApplyTarget(null);
     showToast(t.appSubmitted, true);
@@ -310,7 +312,6 @@ export default function StudentPage() {
     import("@/components/KYCModal").then(({ clearAuth }) => {
       clearAuth("student");
       localStorage.removeItem("sk_saved");
-      localStorage.removeItem("sk_apps");
       setAuthUser(null);
       window.location.reload();
     });
