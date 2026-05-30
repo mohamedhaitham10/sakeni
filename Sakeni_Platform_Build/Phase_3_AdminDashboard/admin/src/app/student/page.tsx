@@ -170,9 +170,10 @@ export default function StudentPage() {
           sqft: number;
           beds: number;
           baths: number;
+          status: string;
           photos: string[];
         }
-        const parsed = JSON.parse(ls) as LLListing[];
+        const parsed = (JSON.parse(ls) as LLListing[]).filter(l => l.status === "active");
         const formatted: Listing[] = parsed.map((l: LLListing) => ({
           id: l.id,
           name: { en: l.name, ar: l.name },

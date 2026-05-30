@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import { createClient } from "@supabase/supabase-js";
 import {
   Activity, CreditCard, DollarSign, Users,
-  TrendingUp, Shield, Globe, ArrowUp,
+  TrendingUp, Shield, Globe, ArrowUp, Building2,
 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Modal } from "@/components/Modal";
@@ -30,6 +30,7 @@ const T = {
     apiCalls:"API Calls Today", errRate:"Error Rate",
     allSystems:"All systems operational",
     student:"Student", landlord:"Landlord",
+    listingApprovals:"Listing Approval Requests", noListingsToReview:"No listings pending review",
     months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
   },
   ar: {
@@ -48,6 +49,7 @@ const T = {
     apiCalls:"طلبات API اليوم", errRate:"معدل الأخطاء",
     allSystems:"جميع الأنظمة تعمل",
     student:"طالب", landlord:"مالك",
+    listingApprovals:"طلبات الموافقة على الإعلانات", noListingsToReview:"لا توجد إعلانات قيد المراجعة",
     months:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
   },
 } as const;
@@ -85,12 +87,25 @@ interface PlatformUser {
   dynamicRole?: "student" | "landlord";
 }
 
+interface AdminListing {
+  id: number;
+  name: string;
+  city: string;
+  district: string;
+  price: number;
+  sqft: number;
+  beds: number;
+  baths: number;
+  status: string;
+}
+
 /* ─── Page ──────────────────────────────────────────────── */
 export default function AdminPage() {
   const [locale, setLocale] = useState<Locale>("en");
   const [modal,  setModal]  = useState<{title:string; body:React.ReactNode}|null>(null);
   const [toast,  setToast]  = useState("");
   const [users,  setUsers]  = useState<PlatformUser[]>([]);
+  const [listings, setListings] = useState<AdminListing[]>([]);
 
   const [studentCount, setStudentCount] = useState(0);
   const [landlordCount, setLandlordCount] = useState(0);
@@ -135,6 +150,27 @@ export default function AdminPage() {
       }
     } catch {}
   }, []);
+
+  useEffect(() => {
+    try {
+      const ls = localStorage.getItem("sk_ll_listings");
+      if (ls) setListings(JSON.parse(ls));
+    } catch {}
+  }, []);
+
+  const handleApproveListing = (id: number) => {
+    const updated = listings.map((l: AdminListing) => l.id === id ? { ...l, status: "active" } : l);
+    setListings(updated);
+    localStorage.setItem("sk_ll_listings", JSON.stringify(updated));
+    showToast("Listing approved ✓");
+  };
+
+  const handleRejectListing = (id: number) => {
+    const updated = listings.map((l: AdminListing) => l.id === id ? { ...l, status: "rejected" } : l);
+    setListings(updated);
+    localStorage.setItem("sk_ll_listings", JSON.stringify(updated));
+    showToast("Listing rejected ✗");
+  };
 
   const t    = T[locale];
   const close     = () => setModal(null);
@@ -611,6 +647,65 @@ export default function AdminPage() {
               </table>
             </div>
           </div>
+        </div>
+
+        {/* ── Listing Approval Requests ── */}
+        <div className="glass-card p-5">
+          <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
+            <Building2 className="w-5 h-5 text-indigo-400"/>
+            {t.listingApprovals}
+          </h3>
+          {listings.filter(l => l.status === "underReview").length === 0 ? (
+            <div className="text-center py-6 text-muted-foreground text-sm">
+              {t.noListingsToReview}
+            </div>
+          ) : (
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="text-xs text-muted-foreground border-b border-white/8">
+                    <th className="text-start pb-2.5 font-medium">{locale === "ar" ? "العقار" : "Property"}</th>
+                    <th className="text-start pb-2.5 font-medium">{locale === "ar" ? "المنطقة" : "Region"}</th>
+                    <th className="text-start pb-2.5 font-medium">{locale === "ar" ? "السعر" : "Price"}</th>
+                    <th className="text-start pb-2.5 font-medium hidden sm:table-cell">{locale === "ar" ? "المساحة / الغرف" : "Area / Beds"}</th>
+                    <th className="text-start pb-2.5 font-medium">{locale === "ar" ? "الحالة" : "Status"}</th>
+                    <th className="text-start pb-2.5 font-medium">Actions</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {listings.filter(l => l.status === "underReview").map((l) => (
+                    <tr key={l.id} className="border-b border-white/4 hover:bg-white/4 transition-colors last:border-none">
+                      <td className="py-2.5 pr-3 font-semibold text-xs text-white">{l.name}</td>
+                      <td className="py-2.5 pr-3 text-xs text-muted-foreground">{l.city}, {l.district}</td>
+                      <td className="py-2.5 pr-3 text-xs text-emerald-400 font-bold">EGP {l.price.toLocaleString()}</td>
+                      <td className="py-2.5 pr-3 text-xs text-muted-foreground hidden sm:table-cell">{l.sqft} m² · {l.beds} bed · {l.baths} bath</td>
+                      <td className="py-2.5 pr-3">
+                        <span className="text-[10px] px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/20">
+                          {locale === "ar" ? "قيد المراجعة" : "Under Review"}
+                        </span>
+                      </td>
+                      <td className="py-2.5">
+                        <div className="flex gap-1.5">
+                          <button
+                            onClick={() => handleApproveListing(l.id)}
+                            className="bg-emerald-600 hover:bg-emerald-500 text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+                          >
+                            {locale === "ar" ? "قبول" : "Approve"}
+                          </button>
+                          <button
+                            onClick={() => handleRejectListing(l.id)}
+                            className="bg-rose-600 hover:bg-rose-500 text-white px-2.5 py-1 rounded text-[10px] font-semibold transition-all"
+                          >
+                            {locale === "ar" ? "رفض" : "Reject"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </div>
 
       </main>
