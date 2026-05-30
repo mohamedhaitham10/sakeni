@@ -528,10 +528,10 @@ export default function StudentPage() {
         {/* ── Stats row ── */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           {[
-            { label:t.available,    value:"1,240",            color:"text-emerald-400", icon:<Home className="w-4 h-4"/>,     action:()=>setTab("all")          },
+            { label:t.available,    value:String(listingsList.length), color:"text-emerald-400", icon:<Home className="w-4 h-4"/>,     action:()=>setTab("all")          },
             { label:t.saved,        value:String(saved.size), color:"text-rose-400",    icon:<Heart className="w-4 h-4"/>,    action:()=>setTab("saved")        },
             { label:t.applications, value:String(apps.length),color:"text-indigo-400",  icon:<BookOpen className="w-4 h-4"/>, action:()=>setTab("applications") },
-            { label:t.profileViews, value:"24",               color:"text-purple-400",  icon:<Eye className="w-4 h-4"/>,      action:()=>{}                     },
+            { label:t.profileViews, value:"0",               color:"text-purple-400",  icon:<Eye className="w-4 h-4"/>,      action:()=>{}                     },
           ].map(s => (
             <div key={s.label} onClick={s.action} className="glass-card p-4 flex items-center gap-3 cursor-pointer group hover:border-white/20 transition-all">
               <div className={`${s.color} p-2 bg-white/5 rounded-lg group-hover:bg-white/10 transition-colors`}>{s.icon}</div>
@@ -759,7 +759,7 @@ export default function StudentPage() {
             ["Phone", authUser?.phone ?? "—"],
             ["Saved listings", String(saved.size)],
             ["Applications sent", String(apps.length)],
-            ["Profile views", "24"],
+            ["Profile views", "0"],
           ].map(([k,v]) => (
             <div key={k} className="flex justify-between py-2.5 border-b border-white/6 last:border-none">
               <span className="text-muted-foreground">{k}</span>
