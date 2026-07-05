@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { createClient } from "@supabase/supabase-js";
 import {
   Activity, CreditCard, DollarSign, Users,
   TrendingUp, Shield, Globe, ArrowUp, Building2,
@@ -114,36 +113,10 @@ export default function AdminPage() {
   const [users,  setUsers]  = useState<PlatformUser[]>([]);
   const [listings, setListings] = useState<AdminListing[]>([]);
 
-  const [studentCount, setStudentCount] = useState(0);
-  const [landlordCount, setLandlordCount] = useState(0);
-  const [activeCount, setActiveCount] = useState(0);
+  const studentCount = users.filter(user => user.type === "student").length;
+  const landlordCount = users.filter(user => user.type === "landlord").length;
+  const activeCount = users.filter(user => user.status === "verified").length;
   const totalRevenue = landlordCount * 4500;
-
-  // Fetch counts from Supabase DB
-  useEffect(() => {
-    const fetchStats = async () => {
-      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-      if (!supabaseUrl || !supabaseAnonKey) return;
-
-      const supabase = createClient(supabaseUrl, supabaseAnonKey);
-      const { data, error } = await supabase.from('profiles').select('role, national_id_status, is_active');
-      if (error) {
-        console.error('Error fetching profiles:', error);
-        return;
-      }
-      let sCount = 0, lCount = 0, aCount = 0;
-      data?.forEach((p: { role: string; national_id_status: string; is_active: boolean }) => {
-        if (p.role === 'student') sCount++;
-        if (p.role === 'landlord') lCount++;
-        if (p.is_active && p.national_id_status === 'verified') aCount++;
-      });
-      setStudentCount(sCount);
-      setLandlordCount(lCount);
-      setActiveCount(aCount);
-    };
-    fetchStats();
-  }, []);
 
   useEffect(() => {
     setLocale((document.documentElement.lang as Locale) || "en");
