@@ -1,0 +1,15 @@
+export const CAIRO_GIZA_UNIVERSITIES = [
+  "Cairo University",
+  "Ain Shams University",
+  "Al-Azhar University",
+  "Helwan University",
+  "American University in Cairo (AUC)",
+  "German University in Cairo (GUC)",
+  "British University in Egypt (BUE)",
+  "Future University in Egypt (FUE)",
+  "October 6 University (O6U)",
+  "Misr University for Science and Technology (MUST)",
+  "Modern Sciences and Arts University (MSA)",
+  "Nile University",
+  "Zewail City of Science and Technology",
+];

@@ -2,6 +2,14 @@ import OpenAI from "https://deno.land/x/openai/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
 
 Deno.serve(async (req) => {
+  if (req.method !== "POST") return new Response("Method not allowed", { status: 405 });
+
+  const webhookSecret = Deno.env.get("FLAG_LISTING_WEBHOOK_SECRET");
+  if (!webhookSecret) return new Response("Missing webhook secret", { status: 500 });
+  if (req.headers.get("x-sakeni-webhook-secret") !== webhookSecret) {
+    return new Response("Unauthorized", { status: 401 });
+  }
+
   const { record } = await req.json(); // incoming webhook payload from Supabase
   if (!record) return new Response("No record provided", { status: 400 });
   

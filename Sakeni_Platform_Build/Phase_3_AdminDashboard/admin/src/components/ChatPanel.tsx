@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { MessageCircle, X, Send, ChevronLeft, Shield } from "lucide-react";
+import { MessageCircle, X, Send, ChevronLeft, Shield, UserCircle, Building2, BookOpen } from "lucide-react";
 
 export type ChatRole = "student" | "landlord" | "admin";
 
@@ -25,12 +25,24 @@ interface Conv {
   unread: Record<ChatRole, number>;
 }
 
+interface ProfilePanel {
+  role: "student" | "landlord";
+  name: string;
+  email?: string;
+  phone?: string;
+  university?: string;
+  city?: string;
+  kycStatus?: string;
+  avatar?: string;
+  posted: { title: string; meta: string }[];
+}
+
 const STORAGE = "sk_convs";
 const ts = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
 const SYS: Msg = {
-  id: 0, role: "system", name: "Sakeni",
-  text: "This chat is facilitated and monitored by Sakeni for your safety. 🛡️",
+  id: 0, role: "system", name: "Sakeni (سكني)",
+  text: "This chat is facilitated and monitored by Sakeni (سكني) for your safety.",
   ts: "",
 };
 
@@ -58,7 +70,7 @@ const SEED: Conv[] = [
       SYS,
       { id: 21, role: "student",  name: "Nour M.", text: "Is a 6-month lease possible for the Maadi studio?",                 ts: "11:05" },
       { id: 22, role: "landlord", name: "Sara K.", text: "Minimum is 12 months, but happy to discuss your situation.",        ts: "11:30" },
-      { id: 23, role: "admin",    name: "Sakeni",  text: "Reminder: all lease agreements must be registered through Sakeni.", ts: "11:31" },
+      { id: 23, role: "admin",    name: "Sakeni (سكني)",  text: "Reminder: all lease agreements must be registered through Sakeni (سكني).", ts: "11:31" },
     ],
     lastMessage: "Minimum is 12 months, happy to discuss.",
     lastAt: "11:30",
@@ -73,6 +85,51 @@ function saveConvs(c: Conv[]) {
   try { localStorage.setItem(STORAGE, JSON.stringify(c)); } catch { /* ignore */ }
 }
 
+function readJson<T>(key: string, fallback: T): T {
+  try {
+    const value = localStorage.getItem(key);
+    return value ? JSON.parse(value) : fallback;
+  } catch {
+    return fallback;
+  }
+}
+
+function buildProfilePanel(profileRole: "student" | "landlord", displayName: string): ProfilePanel {
+  const session = readJson<Record<string, unknown> | null>(`sk_auth_${profileRole}`, null);
+  const accounts = readJson<Record<string, unknown>[]>(`sk_accounts_${profileRole}`, []);
+  const candidates = [session, ...accounts].filter(Boolean) as Record<string, unknown>[];
+  const account = candidates.find(candidate =>
+    String(candidate.name ?? "").toLowerCase() === displayName.toLowerCase()
+  );
+
+  const listings = readJson<{ name: string; city: string; district: string; price: number; status: string }[]>("sk_ll_listings", []);
+  const applications = readJson<{ name: string; university: string; status: string; listingId: number; email?: string }[]>("sk_ll_applicants", []);
+
+  const posted = profileRole === "landlord"
+    ? listings.map(l => ({
+      title: l.name,
+      meta: `${l.city}, ${l.district} · EGP ${Number(l.price || 0).toLocaleString()} · ${l.status}`,
+    }))
+    : applications
+      .filter(a => a.name === displayName || (account?.email && a.email === account.email))
+      .map(a => ({
+        title: `Application #${a.listingId}`,
+        meta: `${a.university} · ${a.status}`,
+      }));
+
+  return {
+    role: profileRole,
+    name: String(account?.name ?? displayName),
+    email: account?.email ? String(account.email) : undefined,
+    phone: account?.phone ? String(account.phone) : undefined,
+    university: account?.university ? String(account.university) : undefined,
+    city: account?.city ? String(account.city) : undefined,
+    kycStatus: account?.kycStatus ? String(account.kycStatus) : undefined,
+    avatar: account?.selfieUrl ? String(account.selfieUrl) : account?.avatar ? String(account.avatar) : undefined,
+    posted,
+  };
+}
+
 export function openListingChat(listingId: number, listingName: string) {
   window.dispatchEvent(new CustomEvent("sk:chat", { detail: { listingId, listingName } }));
 }
@@ -82,6 +139,7 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
   const [convs,    setConvs]    = useState<Conv[]>([]);
   const [activeId, setActiveId] = useState<number | null>(null);
   const [input,    setInput]    = useState("");
+  const [profilePanel, setProfilePanel] = useState<ProfilePanel | null>(null);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -153,6 +211,11 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
     setActiveId(id);
   };
 
+  const openAdminProfile = (profileRole: "student" | "landlord", name: string) => {
+    if (role !== "admin") return;
+    setProfilePanel(buildProfilePanel(profileRole, name));
+  };
+
   const active = convs.find(c => c.id === activeId);
   const totalUnread = convs.reduce((s, c) => s + c.unread[role], 0);
 
@@ -191,7 +254,7 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
               )}
               <MessageCircle className="w-4 h-4 text-indigo-400" />
               <span className="font-semibold text-sm truncate max-w-[220px]">
-                {active ? active.listingName : "Sakeni Messenger"}
+                {active ? active.listingName : "Sakeni (سكني) Messenger"}
               </span>
             </div>
             <button onClick={() => setOpen(false)} className="text-muted-foreground hover:text-white w-7 h-7 flex items-center justify-center rounded-lg hover:bg-white/8 transition-all">
@@ -240,9 +303,22 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
             <div className="flex-1 flex flex-col overflow-hidden">
               <div className="flex items-center gap-2 px-4 py-2 bg-white/2 border-b border-white/5 shrink-0">
                 <Shield className="w-3 h-3 text-indigo-400 shrink-0" />
-                <span className="text-[10px] text-muted-foreground truncate">
-                  {active.studentName} ↔ {active.landlordName} · monitored by Sakeni
-                </span>
+                {role === "admin" ? (
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    <button onClick={() => openAdminProfile("student", active.studentName)} className="text-indigo-300 hover:text-white underline-offset-2 hover:underline">
+                      {active.studentName}
+                    </button>
+                    {" ↔ "}
+                    <button onClick={() => openAdminProfile("landlord", active.landlordName)} className="text-indigo-300 hover:text-white underline-offset-2 hover:underline">
+                      {active.landlordName}
+                    </button>
+                    {" · monitored by Sakeni (سكني)"}
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-muted-foreground truncate">
+                    {active.studentName} ↔ {active.landlordName} · monitored by Sakeni (سكني)
+                  </span>
+                )}
               </div>
 
               <div className="flex-1 overflow-y-auto p-3 space-y-3">
@@ -271,7 +347,7 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
                         {!isMe && !isAdmin && <span className="block text-[10px] font-semibold opacity-50 mb-0.5">{msg.name}</span>}
                         {msg.text}
                       </div>
-                      {isAdmin && <span className="text-[10px] text-white/25 mt-1">Sakeni Admin · {msg.ts}</span>}
+                      {isAdmin && <span className="text-[10px] text-white/25 mt-1">Sakeni (سكني) Admin · {msg.ts}</span>}
                     </div>
                   );
                 })}
@@ -296,6 +372,72 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
               </div>
             </div>
           )}
+        </div>
+      )}
+
+      {role === "admin" && profilePanel && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/65 backdrop-blur-sm p-4" onClick={e => { if (e.target === e.currentTarget) setProfilePanel(null); }}>
+          <div className="w-full max-w-md rounded-2xl border border-white/12 bg-[#0c0c1e] shadow-2xl overflow-hidden">
+            <div className="flex items-center justify-between border-b border-white/8 px-5 py-4">
+              <div className="flex items-center gap-2">
+                <UserCircle className="w-5 h-5 text-indigo-300" />
+                <h3 className="font-bold text-sm">User Profile</h3>
+              </div>
+              <button onClick={() => setProfilePanel(null)} className="w-8 h-8 rounded-lg text-muted-foreground hover:text-white hover:bg-white/8 flex items-center justify-center transition-all">
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-14 h-14 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-300 font-bold overflow-hidden">
+                  {profilePanel.avatar?.startsWith("data:image/") ? (
+                    <img src={profilePanel.avatar} alt={profilePanel.name} className="w-full h-full object-cover" />
+                  ) : (
+                    profilePanel.avatar || profilePanel.name.split(" ").map(n => n[0]).join("").slice(0, 2)
+                  )}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold truncate">{profilePanel.name}</p>
+                  <p className="text-xs text-muted-foreground capitalize">{profilePanel.role}</p>
+                </div>
+              </div>
+
+              <div className="space-y-1 text-sm">
+                {[
+                  ["Email", profilePanel.email ?? "Not available"],
+                  ["Phone", profilePanel.phone ?? "Not available"],
+                  ["University", profilePanel.university ?? "N/A"],
+                  ["City", profilePanel.city ?? "N/A"],
+                  ["KYC", profilePanel.kycStatus ?? "Unknown"],
+                ].map(([label, value]) => (
+                  <div key={label} className="flex justify-between gap-4 border-b border-white/6 py-2 last:border-none">
+                    <span className="text-muted-foreground">{label}</span>
+                    <span className="font-semibold text-right">{value}</span>
+                  </div>
+                ))}
+              </div>
+
+              <div>
+                <div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-white/50">
+                  {profilePanel.role === "landlord" ? <Building2 className="w-3.5 h-3.5" /> : <BookOpen className="w-3.5 h-3.5" />}
+                  {profilePanel.role === "landlord" ? "Posted listings" : "Submitted applications"}
+                </div>
+                {profilePanel.posted.length === 0 ? (
+                  <div className="rounded-xl border border-white/8 bg-white/4 p-4 text-center text-xs text-muted-foreground">Nothing posted yet.</div>
+                ) : (
+                  <div className="space-y-2 max-h-44 overflow-y-auto">
+                    {profilePanel.posted.map((item, index) => (
+                      <div key={`${item.title}-${index}`} className="rounded-xl border border-white/8 bg-white/4 p-3">
+                        <p className="text-sm font-semibold truncate">{item.title}</p>
+                        <p className="text-xs text-muted-foreground mt-1">{item.meta}</p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
       )}
     </>

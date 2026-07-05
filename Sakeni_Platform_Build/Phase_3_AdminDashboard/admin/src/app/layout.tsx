@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+﻿import type { Metadata } from "next";
 import { Inter, Cairo } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
@@ -8,16 +8,16 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo" });
 
 export const metadata: Metadata = {
-  title: "Sakeni | Premium Dashboard",
-  description: "Next-generation admin dashboard and platform built for speed and aesthetics.",
+  title: "Sakeni (سكني) | Housing Platform",
+  description: "Verified student housing platform for Cairo and Giza.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const cookieStore = cookies();
+  const cookieStore = await cookies();
   const locale = (cookieStore.get("locale")?.value ?? "en") as Locale;
   const dir = locale === "ar" ? "rtl" : "ltr";
 

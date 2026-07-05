@@ -128,7 +128,7 @@ export default function UnifiedPortal() {
       <div className="max-w-2xl w-full text-center space-y-8 z-10">
         <div className="space-y-3">
           <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/5 border border-white/10 text-xs text-indigo-400 font-semibold tracking-wide uppercase">
-            <ShieldCheck className="w-3.5 h-3.5" /> Sakeni Unified Gateway
+            <ShieldCheck className="w-3.5 h-3.5" /> Sakeni (سكني) Unified Gateway
           </div>
           <h1 className="text-4xl md:text-5xl font-bold tracking-tight">
             Select Your <span className="text-gradient">Portal Role</span>

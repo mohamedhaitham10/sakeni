@@ -15,7 +15,7 @@ type Locale = "en" | "ar";
 /* ─── i18n ─────────────────────────────────────────────── */
 const T = {
   en: {
-    brand:"SAKENI", admin:"Admin",
+    brand:"Sakeni (سكني)", admin:"Admin",
     overview:"Dashboard Overview", welcome:"Welcome back. Here's what's happening today.",
     dlReport:"Download Report",
     totalRev:"Total Revenue",  subs:"Subscriptions", sales:"Sales", activeNow:"Active Now",
@@ -34,7 +34,7 @@ const T = {
     months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
   },
   ar: {
-    brand:"ساكني", admin:"المشرف",
+    brand:"سكني", admin:"المشرف",
     overview:"نظرة عامة على لوحة التحكم", welcome:"مرحباً بعودتك. إليك ما يحدث اليوم.",
     dlReport:"تحميل التقرير",
     totalRev:"إجمالي الإيرادات", subs:"الاشتراكات", sales:"المبيعات", activeNow:"نشط الآن",
@@ -93,15 +93,17 @@ interface PlatformUser {
 }
 
 interface AdminListing {
-  id: number;
+  id: number | string;
   name: string;
   city: string;
   district: string;
   price: number;
   sqft: number;
+  floorNumber?: number;
   beds: number;
   baths: number;
-  status: string;
+  status: "active" | "pending_review" | "rejected" | "underReview" | string;
+  photos?: string[];
 }
 
 /* ─── Page ──────────────────────────────────────────────── */
@@ -120,17 +122,21 @@ export default function AdminPage() {
   // Fetch counts from Supabase DB
   useEffect(() => {
     const fetchStats = async () => {
-      const supabase = createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!);
-      const { data, error } = await supabase.from('profiles').select('type, status');
+      const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+      const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+      if (!supabaseUrl || !supabaseAnonKey) return;
+
+      const supabase = createClient(supabaseUrl, supabaseAnonKey);
+      const { data, error } = await supabase.from('profiles').select('role, national_id_status, is_active');
       if (error) {
         console.error('Error fetching profiles:', error);
         return;
       }
       let sCount = 0, lCount = 0, aCount = 0;
-      data?.forEach((p: { type: string; status: string }) => {
-        if (p.type === 'student') sCount++;
-        if (p.type === 'landlord') lCount++;
-        if (p.status === 'verified') aCount++;
+      data?.forEach((p: { role: string; national_id_status: string; is_active: boolean }) => {
+        if (p.role === 'student') sCount++;
+        if (p.role === 'landlord') lCount++;
+        if (p.is_active && p.national_id_status === 'verified') aCount++;
       });
       setStudentCount(sCount);
       setLandlordCount(lCount);
@@ -159,18 +165,28 @@ export default function AdminPage() {
   useEffect(() => {
     try {
       const ls = localStorage.getItem("sk_ll_listings");
-      if (ls) setListings(JSON.parse(ls));
+      if (ls) setListings((JSON.parse(ls) as AdminListing[]).map(normalizeAdminListing));
     } catch {}
   }, []);
 
-  const handleApproveListing = (id: number) => {
+  const normalizeAdminListing = (listing: AdminListing): AdminListing => ({
+    ...listing,
+    status: listing.status === "underReview" ? "pending_review" : listing.status,
+    floorNumber: Number.isFinite(Number(listing.floorNumber)) ? Number(listing.floorNumber) : 0,
+    photos: Array.isArray(listing.photos) ? listing.photos.slice(0, 15) : [],
+  });
+
+  const isPendingReview = (listing: AdminListing) =>
+    listing.status === "pending_review" || listing.status === "underReview";
+
+  const handleApproveListing = (id: AdminListing["id"]) => {
     const updated = listings.map((l: AdminListing) => l.id === id ? { ...l, status: "active" } : l);
     setListings(updated);
     localStorage.setItem("sk_ll_listings", JSON.stringify(updated));
     showToast("Listing approved ✓");
   };
 
-  const handleRejectListing = (id: number) => {
+  const handleRejectListing = (id: AdminListing["id"]) => {
     const updated = listings.map((l: AdminListing) => l.id === id ? { ...l, status: "rejected" } : l);
     setListings(updated);
     localStorage.setItem("sk_ll_listings", JSON.stringify(updated));
@@ -191,47 +207,47 @@ export default function AdminPage() {
     const savedStatic = localStorage.getItem("sk_admin_users");
     let currentUsers = savedStatic ? JSON.parse(savedStatic) : initialSignups;
 
-    const dynamicStudent = localStorage.getItem("sk_auth_student");
-    if (dynamicStudent) {
-      const parsed = JSON.parse(dynamicStudent);
-      currentUsers = currentUsers.filter((u: PlatformUser) => u.email !== parsed.email);
-      currentUsers.unshift({
-        id: "dynamic_student",
-        name: parsed.name,
-        type: parsed.role,
-        city: parsed.city || parsed.governorate || "Cairo",
-        joined: "Just Now",
-        status: parsed.kycStatus,
-        nationalId: parsed.nationalId,
-        birthdate: parsed.birthdate || "1999-01-01",
-        gender: parsed.gender || "Male",
-        governorate: parsed.governorate || "Cairo",
-        email: parsed.email,
-        isDynamic: true,
-        dynamicRole: "student"
-      });
-    }
+    const readAuthRecords = (role: "student" | "landlord") => {
+      const records: PlatformUser[] = [];
+      const savedAccounts = JSON.parse(localStorage.getItem(`sk_accounts_${role}`) || "[]") as unknown[];
+      const rawValues: unknown[] = [
+        localStorage.getItem(`sk_auth_${role}`),
+        ...savedAccounts,
+      ].filter(Boolean);
 
-    const dynamicLandlord = localStorage.getItem("sk_auth_landlord");
-    if (dynamicLandlord) {
-      const parsed = JSON.parse(dynamicLandlord);
-      currentUsers = currentUsers.filter((u: PlatformUser) => u.email !== parsed.email);
-      currentUsers.unshift({
-        id: "dynamic_landlord",
-        name: parsed.name,
-        type: parsed.role,
-        city: parsed.city || parsed.governorate || "Cairo",
-        joined: "Just Now",
-        status: parsed.kycStatus,
-        nationalId: parsed.nationalId,
-        birthdate: parsed.birthdate || "1978-05-15",
-        gender: parsed.gender || "Male",
-        governorate: parsed.governorate || "Cairo",
-        email: parsed.email,
-        isDynamic: true,
-        dynamicRole: "landlord"
+      rawValues.forEach((raw, index) => {
+        const parsed = (typeof raw === "string" ? JSON.parse(raw) : raw) as {
+          name: string;
+          role: "student" | "landlord";
+          city?: string;
+          governorate?: string;
+          kycStatus: "verified" | "pending" | "rejected";
+          nationalId?: string;
+          birthdate?: string;
+          gender?: string;
+          email: string;
+        };
+        currentUsers = currentUsers.filter((u: PlatformUser) => u.email !== parsed.email);
+        records.push({
+          id: `dynamic_${role}_${index}`,
+          name: parsed.name,
+          type: parsed.role,
+          city: parsed.city || parsed.governorate || "Cairo",
+          joined: index === 0 ? "Current Session" : "Saved Account",
+          status: parsed.kycStatus,
+          nationalId: parsed.nationalId,
+          birthdate: parsed.birthdate || (role === "student" ? "1999-01-01" : "1978-05-15"),
+          gender: parsed.gender || "Male",
+          governorate: parsed.governorate || "Cairo",
+          email: parsed.email,
+          isDynamic: true,
+          dynamicRole: role,
+        });
       });
-    }
+      return records;
+    };
+
+    currentUsers.unshift(...readAuthRecords("student"), ...readAuthRecords("landlord"));
 
     setUsers(currentUsers);
   };
@@ -248,9 +264,16 @@ export default function AdminPage() {
           const currentAuth = localStorage.getItem(authKey);
           if (currentAuth) {
             const parsed = JSON.parse(currentAuth);
-            parsed.kycStatus = newStatus;
-            localStorage.setItem(authKey, JSON.stringify(parsed));
+            if (parsed.email === u.email) {
+              parsed.kycStatus = newStatus;
+              localStorage.setItem(authKey, JSON.stringify(parsed));
+            }
           }
+          const accountsKey = `sk_accounts_${u.dynamicRole}`;
+          const accounts = JSON.parse(localStorage.getItem(accountsKey) || "[]");
+          localStorage.setItem(accountsKey, JSON.stringify(accounts.map((account: { email: string; kycStatus: string }) =>
+            account.email === u.email ? { ...account, kycStatus: newStatus } : account
+          )));
         }
         return { ...u, status: newStatus };
       }
@@ -269,7 +292,7 @@ export default function AdminPage() {
     body: (
       <div>
         <div className="mb-4 p-3 bg-indigo-500/10 border border-indigo-500/20 rounded-lg text-sm text-indigo-400">
-          Sakeni Platform &middot; May 2026 Report
+          Sakeni (سكني) Platform &middot; May 2026 Report
         </div>
         <Field label={t.totalRev}          value={`EGP ${totalRevenue.toLocaleString()}`}/>
         <Field label={t.subs}              value={`${studentCount + landlordCount}`}/>
@@ -664,7 +687,7 @@ export default function AdminPage() {
             <Building2 className="w-5 h-5 text-indigo-400"/>
             {t.listingApprovals}
           </h3>
-          {listings.filter(l => l.status === "underReview").length === 0 ? (
+          {listings.filter(isPendingReview).length === 0 ? (
             <div className="text-center py-6 text-muted-foreground text-sm">
               {t.noListingsToReview}
             </div>
@@ -682,12 +705,12 @@ export default function AdminPage() {
                   </tr>
                 </thead>
                 <tbody>
-                  {listings.filter(l => l.status === "underReview").map((l) => (
+                  {listings.filter(isPendingReview).map((l) => (
                     <tr key={l.id} className="border-b border-white/4 hover:bg-white/4 transition-colors last:border-none">
                       <td className="py-2.5 pr-3 font-semibold text-xs text-white">{l.name}</td>
                       <td className="py-2.5 pr-3 text-xs text-muted-foreground">{l.city}, {l.district}</td>
                       <td className="py-2.5 pr-3 text-xs text-emerald-400 font-bold">EGP {l.price.toLocaleString()}</td>
-                      <td className="py-2.5 pr-3 text-xs text-muted-foreground hidden sm:table-cell">{l.sqft} m² · {l.beds} bed · {l.baths} bath</td>
+                      <td className="py-2.5 pr-3 text-xs text-muted-foreground hidden sm:table-cell">{l.sqft} m² · Floor {l.floorNumber ?? 0} · {l.beds} bed · {l.baths} bath · {l.photos?.length ?? 0} photos</td>
                       <td className="py-2.5 pr-3">
                         <span className="text-[10px] px-2 py-0.5 rounded-full border bg-amber-500/10 text-amber-400 border-amber-500/20">
                           {locale === "ar" ? "قيد المراجعة" : "Under Review"}

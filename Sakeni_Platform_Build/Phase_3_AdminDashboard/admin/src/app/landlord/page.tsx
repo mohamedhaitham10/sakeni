@@ -1,15 +1,16 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { Building2, Eye, Users, DollarSign, Plus, Edit, Trash2, ChevronRight, TrendingUp, BarChart2, ImageIcon, X } from "lucide-react";
+import { Building2, Eye, Users, DollarSign, Plus, Edit, Trash2, ChevronRight, TrendingUp, BarChart2, ImageIcon, X, Upload } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Modal } from "@/components/Modal";
 import { KYCModal, getAuth, setAuth, AuthUser } from "@/components/KYCModal";
 import { ChatPanel } from "@/components/ChatPanel";
+import { imageFileToDataUrl, isSupportedPhotoUrl } from "@/lib/local-upload";
 
 type Locale = "en" | "ar";
 type Tab = "listings" | "applications";
-type Status = "active" | "underReview";
+type Status = "active" | "pending_review" | "rejected";
 type AppStatus = "pending" | "approved" | "declined";
 
 interface Listing {
@@ -19,6 +20,7 @@ interface Listing {
   district: string;
   price: number;
   sqft: number;
+  floorNumber: number;
   beds: number;
   baths: number;
   description: string;
@@ -38,10 +40,15 @@ interface Applicant {
   lease: string;
   message: string;
   status: AppStatus;
+  avatar?: string;
+  email?: string;
+  studentId?: string;
+  year?: string;
+  submittedAt?: string;
 }
 
 const EN = {
-  brand:"SAKENI", landlord:"Landlord",
+  brand:"Sakeni (سكني)", landlord:"Landlord",
   myListings:"My Listings", welcomeBack:"Manage your properties and applications below.",
   addNewListing:"Add New Listing",
   activeListings:"Active Listings", totalViews:"Total Views",
@@ -53,9 +60,10 @@ const EN = {
   viewsLabel:"views", applicantsLabel:"apps",
   addListingTitle:"Add New Listing", editListingTitle:"Edit Listing",
   titleLabel:"Title", cityLabel:"City", districtLabel:"District",
-  priceLabel:"Price (EGP/mo)", sqftLabel:"Area (m²)", bedsLabel:"Bedrooms", bathsLabel:"Bathrooms",
+  priceLabel:"Price (EGP/mo)", sqftLabel:"Area (m²)", floorLabel:"Floor Number", bedsLabel:"Bedrooms", bathsLabel:"Bathrooms",
   descLabel:"Description", statusLabel:"Status",
-  photosLabel:"Apartment Photos", photosHint:"Add up to 5 photo URLs (one per line)",
+  photosLabel:"Apartment Photos", photosHint:"Add up to 15 photos using image upload or direct URLs",
+  uploadPhotos:"Upload photos",
   addPhotoUrl:"Paste photo URL here…",
   saveListing:"Save Listing", cancel:"Cancel",
   removeConfirm:"Remove this listing?",
@@ -69,12 +77,12 @@ const EN = {
   months:["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"],
   toastAdded:"Listing added!", toastUpdated:"Listing updated!", toastRemoved:"Listing removed.",
   toastApproved:"Application approved.", toastDeclined:"Application declined.",
-  nameRequired:"Title is required", priceRequired:"Price is required",
+  nameRequired:"Title is required", priceRequired:"Price is required", floorRequired:"Floor number is required",
   clickBarHint:"Click a bar to see monthly revenue",
   myProfile:"My Profile", signOut:"Sign Out", noPhotos:"No photos yet",
 };
 const AR: typeof EN = {
-  brand:"ساكني", landlord:"المالك",
+  brand:"سكني", landlord:"المالك",
   myListings:"قوائمي", welcomeBack:"أدر عقاراتك وطلباتك أدناه.",
   addNewListing:"إضافة إعلان",
   activeListings:"الإعلانات النشطة", totalViews:"إجمالي المشاهدات",
@@ -86,9 +94,10 @@ const AR: typeof EN = {
   viewsLabel:"مشاهدة", applicantsLabel:"طلب",
   addListingTitle:"إضافة إعلان جديد", editListingTitle:"تعديل الإعلان",
   titleLabel:"العنوان", cityLabel:"المدينة", districtLabel:"الحي",
-  priceLabel:"السعر (جنيه/شهر)", sqftLabel:"المساحة (م²)", bedsLabel:"غرف النوم", bathsLabel:"دورات المياه",
+  priceLabel:"السعر (جنيه/شهر)", sqftLabel:"المساحة (م²)", floorLabel:"رقم الدور", bedsLabel:"غرف النوم", bathsLabel:"دورات المياه",
   descLabel:"الوصف", statusLabel:"الحالة",
-  photosLabel:"صور الشقة", photosHint:"أضف حتى 5 روابط صور (رابط في كل سطر)",
+  photosLabel:"صور الشقة", photosHint:"أضف حتى 15 صورة بالرفع أو بروابط مباشرة",
+  uploadPhotos:"رفع الصور",
   addPhotoUrl:"الصق رابط الصورة هنا…",
   saveListing:"حفظ", cancel:"إلغاء",
   removeConfirm:"حذف هذا الإعلان؟",
@@ -102,7 +111,7 @@ const AR: typeof EN = {
   months:["يناير","فبراير","مارس","أبريل","مايو","يونيو","يوليو","أغسطس","سبتمبر","أكتوبر","نوفمبر","ديسمبر"],
   toastAdded:"تمت إضافة الإعلان!", toastUpdated:"تم تحديث الإعلان!", toastRemoved:"تم حذف الإعلان.",
   toastApproved:"تم قبول الطلب.", toastDeclined:"تم رفض الطلب.",
-  nameRequired:"العنوان مطلوب", priceRequired:"السعر مطلوب",
+  nameRequired:"العنوان مطلوب", priceRequired:"السعر مطلوب", floorRequired:"رقم الدور مطلوب",
   clickBarHint:"انقر على العمود لرؤية الإيراد الشهري",
   myProfile:"ملفي الشخصي", signOut:"تسجيل الخروج", noPhotos:"لا توجد صور بعد",
 };
@@ -115,8 +124,8 @@ const INIT_LISTINGS: Listing[] = [];
 const INIT_APPLICANTS: Applicant[] = [];
 
 const EMPTY_FORM = {
-  name:"", city:"Cairo", district:"", price:"", sqft:"", beds:"1", baths:"1",
-  description:"", status:"underReview" as Status, photosRaw:"",
+  name:"", city:"Cairo", district:"", price:"", sqft:"", floorNumber:"", beds:"1", baths:"1",
+  description:"", status:"pending_review" as Status, photosRaw:"",
 };
 
 export default function LandlordPage() {
@@ -126,7 +135,7 @@ export default function LandlordPage() {
   const [applicants, setApplicants] = useState<Applicant[]>(INIT_APPLICANTS);
   const [modal,      setModal]      = useState<{ type:string; data?:Listing|Applicant|null } | null>(null);
   const [form,       setForm]       = useState({ ...EMPTY_FORM });
-  const [formErrors, setFormErrors] = useState<{ name?:string; price?:string }>({});
+  const [formErrors, setFormErrors] = useState<{ name?:string; price?:string; floorNumber?:string }>({});
   const [toast,      setToast]      = useState("");
   const [filterListingId, setFilterListingId] = useState<number|null>(null);
   const [authUser,   setAuthUser]   = useState<AuthUser | null>(null);
@@ -145,7 +154,14 @@ export default function LandlordPage() {
   useEffect(() => {
     try {
       const ls = localStorage.getItem("sk_ll_listings");
-      if (ls) setListings(JSON.parse(ls));
+      if (ls) {
+        setListings((JSON.parse(ls) as Listing[]).map(listing => ({
+          ...listing,
+          status: listing.status === "active" ? "active" : listing.status === "rejected" ? "rejected" : "pending_review",
+          floorNumber: Number.isFinite(Number(listing.floorNumber)) ? Number(listing.floorNumber) : 0,
+          photos: Array.isArray(listing.photos) ? listing.photos.filter(isSupportedPhotoUrl).slice(0, 15) : [],
+        })));
+      }
       const as_ = localStorage.getItem("sk_ll_applicants");
       if (as_) setApplicants(JSON.parse(as_));
     } catch { /* ignore */ }
@@ -165,7 +181,8 @@ export default function LandlordPage() {
 
   const statusCls: Record<Status, string> = {
     active:      "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
-    underReview: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    pending_review: "bg-amber-500/15 text-amber-400 border-amber-500/30",
+    rejected: "bg-rose-500/15 text-rose-400 border-rose-500/30",
   };
   const appCls: Record<AppStatus, string> = {
     pending:  "bg-amber-500/15 text-amber-400 border-amber-500/30",
@@ -173,8 +190,14 @@ export default function LandlordPage() {
     declined: "bg-rose-500/15 text-rose-400 border-rose-500/30",
   };
 
+  const normalizeStatus = (status: string): Status => {
+    if (status === "active") return "active";
+    if (status === "rejected") return "rejected";
+    return "pending_review";
+  };
+
   const parsePhotos = (raw: string) =>
-    raw.split("\n").map(s => s.trim()).filter(s => s.startsWith("http"));
+    raw.split("\n").map(s => s.trim()).filter(isSupportedPhotoUrl).slice(0, 15);
 
   const openAdd  = () => {
     setForm({ ...EMPTY_FORM });
@@ -183,18 +206,35 @@ export default function LandlordPage() {
     setModal({ type:"add" });
   };
   const openEdit = (l:Listing) => {
-    setForm({ name:l.name, city:l.city, district:l.district, price:String(l.price), sqft:String(l.sqft), beds:String(l.beds), baths:String(l.baths), description:l.description, status:l.status, photosRaw:l.photos.join("\n") });
+    setForm({ name:l.name, city:l.city, district:l.district, price:String(l.price), sqft:String(l.sqft), floorNumber:String(l.floorNumber ?? 0), beds:String(l.beds), baths:String(l.baths), description:l.description, status:normalizeStatus(l.status), photosRaw:l.photos.join("\n") });
     setFormErrors({});
     setPhotoInput("");
     setModal({ type:"edit", data:l });
   };
 
   const addPhotoToForm = () => {
-    if (!photoInput.trim().startsWith("http")) return;
-    const current = form.photosRaw ? form.photosRaw.split("\n").filter(Boolean) : [];
-    if (current.length >= 5) { showToast("Max 5 photos allowed"); return; }
+    if (!isSupportedPhotoUrl(photoInput.trim())) return;
+    const current = parsePhotos(form.photosRaw);
+    if (current.length >= 15) { showToast("Max 15 photos allowed"); return; }
     setForm(f => ({ ...f, photosRaw: [...current, photoInput.trim()].join("\n") }));
     setPhotoInput("");
+  };
+
+  const addPhotoFiles = async (files: FileList | null) => {
+    if (!files?.length) return;
+    const current = parsePhotos(form.photosRaw);
+    const availableSlots = 15 - current.length;
+    if (availableSlots <= 0) { showToast("Max 15 photos allowed"); return; }
+
+    try {
+      const uploads = await Promise.all(
+        Array.from(files).slice(0, availableSlots).map(file => imageFileToDataUrl(file))
+      );
+      setForm(f => ({ ...f, photosRaw: [...parsePhotos(f.photosRaw), ...uploads].slice(0, 15).join("\n") }));
+      showToast(`${uploads.length} photo${uploads.length === 1 ? "" : "s"} uploaded.`);
+    } catch (err) {
+      showToast(err instanceof Error ? err.message : "Photo upload failed.");
+    }
   };
 
   const removePhoto = (idx: number) => {
@@ -204,20 +244,22 @@ export default function LandlordPage() {
   };
 
   const saveListing = () => {
-    const errs: { name?:string; price?:string } = {};
+    const errs: { name?:string; price?:string; floorNumber?:string } = {};
     if (!form.name.trim())  errs.name  = t.nameRequired;
     if (!form.price.trim()) errs.price = t.priceRequired;
+    if (form.floorNumber === "" || Number.isNaN(Number(form.floorNumber))) errs.floorNumber = t.floorRequired;
     if (Object.keys(errs).length) { setFormErrors(errs); return; }
 
     const photos = parsePhotos(form.photosRaw);
+    const floorNumber = Number(form.floorNumber);
 
     if (modal?.type === "add") {
       const newId = Math.max(0, ...listings.map(l => l.id)) + 1;
-      setListings(prev => [...prev, { id:newId, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), beds:Number(form.beds), baths:Number(form.baths), description:form.description, views:0, applicants:0, status:form.status, photos }]);
+      setListings(prev => [...prev, { id:newId, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), floorNumber, beds:Number(form.beds), baths:Number(form.baths), description:form.description, views:0, applicants:0, status:"pending_review", photos }]);
       showToast(t.toastAdded);
     } else if (modal?.type === "edit" && modal.data) {
       const id = (modal.data as Listing).id;
-      setListings(prev => prev.map(l => l.id === id ? { ...l, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), beds:Number(form.beds), baths:Number(form.baths), description:form.description, status:form.status, photos } : l));
+      setListings(prev => prev.map(l => l.id === id ? { ...l, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), floorNumber, beds:Number(form.beds), baths:Number(form.baths), description:form.description, status:"pending_review", photos } : l));
       showToast(t.toastUpdated);
     }
     close();
@@ -247,11 +289,12 @@ export default function LandlordPage() {
     setFormErrors(fe => ({ ...fe, [name]: "" }));
   };
 
+  const listingStatusLabel = (status: Status) =>
+    status === "active" ? t.active : status === "rejected" ? "Rejected" : t.underReview;
+
   const handleSignOut = () => {
     import("@/components/KYCModal").then(({ clearAuth }) => {
       clearAuth("landlord");
-      localStorage.removeItem("sk_ll_listings");
-      localStorage.removeItem("sk_ll_applicants");
       setAuthUser(null);
       window.location.reload();
     });
@@ -285,7 +328,7 @@ export default function LandlordPage() {
             onClick={() => setProfileOpen(true)}
             className="h-9 w-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-amber-500/40 cursor-pointer hover:scale-105 transition-transform"
           >
-            {authUser?.avatar ?? "LL"}
+            {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "LL"}
           </button>
         </div>
       </header>
@@ -390,12 +433,12 @@ export default function LandlordPage() {
                         <div className="min-w-0">
                           <p className="font-semibold text-sm truncate">{l.name}</p>
                           <p className="text-xs text-muted-foreground mt-0.5">
-                            EGP {l.price.toLocaleString()}/mo · {l.sqft} m² · {l.beds}bd {l.baths}ba
+                            EGP {l.price.toLocaleString()}/mo · {l.sqft} m² · Floor {l.floorNumber} · {l.beds}bd {l.baths}ba
                           </p>
                         </div>
                       </div>
                       <span className={`text-xs font-medium px-2.5 py-1 rounded-full border shrink-0 ${statusCls[l.status]}`}>
-                        {l.status === "active" ? t.active : t.underReview}
+                        {listingStatusLabel(l.status)}
                       </span>
                     </div>
 
@@ -544,20 +587,16 @@ export default function LandlordPage() {
             <FormField label={t.priceLabel} name="price" type="number" placeholder="4500" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
             <FormField label={t.sqftLabel} name="sqft" type="number" placeholder="60" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           </div>
+          <FormField label={t.floorLabel} name="floorNumber" type="number" placeholder="3" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           <div className="grid grid-cols-2 gap-3">
             <FormField label={t.bedsLabel} name="beds" type="number" placeholder="1" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
             <FormField label={t.bathsLabel} name="baths" type="number" placeholder="1" form={form} formErrors={formErrors as Record<string, string>} onChange={handleFormChange} />
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.statusLabel}</label>
-            <select
-              value={form.status}
-              onChange={e => setForm(f => ({ ...f, status: e.target.value as Status }))}
-              className="w-full bg-[#0d0d22] border border-white/10 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-amber-500/40 transition-all text-white"
-            >
-              <option value="underReview" className="bg-[#12122b] text-white">{t.underReview}</option>
-              <option value="active" className="bg-[#12122b] text-white">{t.active}</option>
-            </select>
+            <div className="w-full bg-amber-500/10 border border-amber-500/25 rounded-lg px-3 py-2.5 text-sm text-amber-300">
+              {t.underReview}
+            </div>
           </div>
           <div>
             <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.descLabel}</label>
@@ -568,9 +607,20 @@ export default function LandlordPage() {
           <div>
             <label className="block text-xs text-muted-foreground mb-1.5 font-medium flex items-center gap-1.5">
               <ImageIcon className="w-3.5 h-3.5"/> {t.photosLabel}
-              <span className="text-white/25 font-normal">({parsePhotos(form.photosRaw).length}/5)</span>
+              <span className="text-white/25 font-normal">({parsePhotos(form.photosRaw).length}/15)</span>
             </label>
             <p className="text-[10px] text-white/30 mb-2">{t.photosHint}</p>
+            <label className="mb-2 inline-flex items-center gap-2 cursor-pointer rounded-lg border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-300 hover:bg-amber-500/15 transition-all">
+              <Upload className="w-3.5 h-3.5" />
+              {t.uploadPhotos}
+              <input
+                type="file"
+                accept="image/jpeg,image/png,image/webp"
+                multiple
+                className="hidden"
+                onChange={e => { void addPhotoFiles(e.target.files); e.currentTarget.value = ""; }}
+              />
+            </label>
 
             {/* Existing photos */}
             {parsePhotos(form.photosRaw).length > 0 && (
@@ -591,7 +641,7 @@ export default function LandlordPage() {
             )}
 
             {/* Add photo URL */}
-            {parsePhotos(form.photosRaw).length < 5 && (
+            {parsePhotos(form.photosRaw).length < 15 && (
               <div className="flex gap-2">
                 <input
                   value={photoInput}
@@ -656,10 +706,11 @@ export default function LandlordPage() {
                 [t.viewsLabel,      `${l.views.toLocaleString()}`],
                 [t.applicantsLabel, `${l.applicants}`],
                 [t.convRate,        `${conv}%`],
+                [t.floorLabel,       `${l.floorNumber}`],
                 ["Photos",          `${l.photos.length}`],
                 ["Monthly Revenue", `EGP ${l.price.toLocaleString()}`],
                 ["Annual Revenue",  `EGP ${(l.price*12).toLocaleString()}`],
-                ["Status",          l.status === "active" ? t.active : t.underReview],
+                ["Status",          listingStatusLabel(l.status)],
               ].map(([k,v]) => (
                 <div key={k} className="flex justify-between py-2.5 border-b border-white/6 last:border-none">
                   <span className="text-muted-foreground">{k}</span>
@@ -678,9 +729,20 @@ export default function LandlordPage() {
           const listing = listings.find(l => l.id === a.listingId);
           return (
             <div className="space-y-1 text-sm">
+              <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/5 p-3 mb-3">
+                <div className="w-12 h-12 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-300 font-bold shrink-0 overflow-hidden">
+                  {a.avatar?.startsWith("data:image/") ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" /> : (a.avatar || a.name.split(" ").map(n=>n[0]).join("").slice(0,2))}
+                </div>
+                <div className="min-w-0">
+                  <p className="font-bold text-white truncate">{a.name}</p>
+                  <p className="text-xs text-muted-foreground truncate">{a.email ?? "Profile email not shared"}</p>
+                </div>
+              </div>
               {[
                 ["Listing",      listing?.name ?? ""],
                 [t.university,   a.university],
+                ["Student ID",    a.studentId ?? "—"],
+                ["Year",          a.year ?? "—"],
                 [t.phone,        a.phone],
                 [t.moveIn,       a.moveIn],
                 [t.lease,        a.lease],
@@ -713,7 +775,7 @@ export default function LandlordPage() {
         <div className="space-y-1 text-sm">
           <div className="text-center mb-5">
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center font-bold text-xl mx-auto mb-3">
-              {authUser?.avatar ?? "LL"}
+              {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "LL"}
             </div>
             <p className="font-bold text-lg">{authUser?.name ?? "Landlord User"}</p>
             <p className="text-xs text-muted-foreground">{authUser?.email ?? "landlord@sakeni.eg"}</p>

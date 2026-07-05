@@ -1,30 +1,74 @@
-# 🚀 Sakeni Platform: Deployment & Go-Live Checklist
+# Sakeni Platform: Deployment And Go-Live Checklist
 
-Congratulations! The Sakeni MVP has been successfully scaffolded across all 6 phases. To deploy this to the Egyptian market, follow this production check-list:
+Use this checklist before opening Sakeni (سكني) to real students and landlords.
 
-## 1. Database & Backend (Supabase)
-- [ ] Connect your local Supabase CLI to your cloud project using `npx supabase link --project-ref your-ref-id`.
-- [ ] Push the Phase 1 schema (`20260331175433_init_schema.sql`) to production using `npx supabase db push`.
-- [ ] Navigate into `Phase_1_Database/supabase/functions` and deploy the edge functions:
+## 1. Database And Backend
+
+- [ ] Link the Supabase CLI to production:
+  ```bash
+  npx supabase link --project-ref your-ref-id
+  ```
+- [ ] Push every migration, including the listing approval, KYC, storage, application, floor number, and RLS migration:
+  ```bash
+  npx supabase db push
+  ```
+- [ ] Deploy all edge functions:
   ```bash
   npx supabase functions deploy recommend-listings
   npx supabase functions deploy flag-listing
+  npx supabase functions deploy verify-identity
   ```
-- [ ] Set your `OPENAI_API_KEY` secret within your Supabase project dashboard so the Edge Functions can utilize GPT-4o-mini.
+- [ ] Set Supabase secrets:
+  - `OPENAI_API_KEY`
+  - `ALLOWED_ORIGINS`
+  - `FLAG_LISTING_WEBHOOK_SECRET`
+  - `FACE_MATCH_API_URL`
+  - `FACE_MATCH_API_KEY`
+- [ ] Confirm RLS is enabled and tested for listings, applications, saved listings, messages, reports, subscriptions, contracts, broadcasts, and admin-only tables.
+- [ ] Confirm storage buckets exist for listing photos, government IDs, and profile/selfie images.
 
-## 2. Frontend & PWA Monolith (Next.js)
-- [ ] We chose a **Next.js PWA** (eliminating the need to push to Apple/Google App stores immediately).
-- [ ] Create a new Vercel Project and point it to the GitHub repository containing `Phase_3_AdminDashboard/admin`.
-- [ ] In Vercel, copy the contents of `.env.example` into the Environment Variables tab and populate the actual keys.
-- [ ] Click **Deploy**. Vercel will build the Student Mobile views (`/student`), Landlord Web Portal (`/landlord`), and Admin Dashboard (`/`) natively.
+## 2. Frontend And Vercel
 
-## 3. Integrations Setup
-- [ ] **Stripe Config**: Enable the webhook in the Stripe Developer console and point it to your Vercel URL `/api/stripe-webhook`. Replace local `STRIPE_WEBHOOK_SECRET`.
-- [ ] **Resend**: Verify your custom Sakeni domain on Resend to ensure emails land in the inbox, not spam.
-- [ ] **Google APIs**: If integrating Maps for strict filtering in the Student app, restrict the Maps API key strictly to your Vercel URL.
+- [ ] Point Vercel at `Sakeni_Platform_Build/Phase_3_AdminDashboard/admin`.
+- [ ] Copy `Sakeni_Platform_Build/Phase_3_AdminDashboard/admin/.env.example` into Vercel environment variables and fill in real values.
+- [ ] Run the local launch check before pushing:
+  ```bash
+  npm run check
+  ```
+- [ ] If GitHub Actions is enabled, copy `GITHUB_ACTIONS_CI_TEMPLATE.yml` to `.github/workflows/ci.yml` with a token that has `workflow` scope, then wait for CI to pass.
+- [ ] Confirm Vercel deploys the latest commit.
+- [ ] Confirm security headers are present on the production URL.
 
-## 4. Launch Day
-- [ ] Force HTTPS redirects.
-- [ ] Execute an End-to-End test representing a Student signing up and favoring a listed property.
-- [ ] Execute an End-to-End test for a Landlord submitting a National ID.
-- [ ] **Go Live!**
+## 3. Approval Workflow
+
+- [ ] Landlord listing creation defaults to `Under Review`.
+- [ ] Listings are hidden from students until an admin approves them.
+- [ ] Approved listings become `Active`.
+- [ ] Rejected listings remain hidden from students.
+- [ ] Student listing details show floor number and the full photo gallery.
+
+## 4. Integrations
+
+- [ ] Stripe webhook points to the production `/api/stripe-webhook` URL and uses the production `STRIPE_WEBHOOK_SECRET`.
+- [ ] Resend domain is verified for Sakeni transactional email.
+- [ ] Google Maps keys, if enabled, are restricted to the production domain.
+- [ ] Face matching provider keys are server-only and never exposed to the browser.
+
+## 5. Manual Smoke Test
+
+- [ ] Student signup accepts only official government IDs and a selfie.
+- [ ] Student university dropdown only includes Cairo and Giza universities.
+- [ ] Student can sign out and sign back into the same account.
+- [ ] Landlord can upload listing photos from the device and create a listing with floor number.
+- [ ] Admin can approve the listing.
+- [ ] Student can open the listing and swipe through all photos.
+- [ ] Student can submit an application.
+- [ ] Landlord can view the submitted application, applicant profile details, and profile photo.
+- [ ] Admin chat profile drawer opens user profiles and posted listings.
+
+## 6. Launch Day
+
+- [ ] HTTPS is enforced.
+- [ ] Monitoring is enabled for Vercel and Supabase.
+- [ ] Error logs are checked after the first deployment.
+- [ ] A rollback plan and database backup are ready.

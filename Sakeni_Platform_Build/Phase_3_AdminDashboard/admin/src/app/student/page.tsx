@@ -3,12 +3,13 @@
 import { useState, useEffect, useMemo, useRef } from "react";
 import {
   Search, Heart, Home, BookOpen, Eye, Bed, Bath, Square,
-  MapPin, SlidersHorizontal, X, ArrowUpDown, ChevronRight, MessageCircle,
+  MapPin, SlidersHorizontal, X, ArrowUpDown, ChevronRight, ChevronLeft, MessageCircle,
 } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { Modal } from "@/components/Modal";
 import { KYCModal, getAuth, setAuth, AuthUser } from "@/components/KYCModal";
 import { ChatPanel, openListingChat } from "@/components/ChatPanel";
+import { CAIRO_GIZA_UNIVERSITIES } from "@/lib/cairo-giza-universities";
 
 type Locale = "en" | "ar";
 type Tab = "featured" | "all" | "saved" | "applications";
@@ -26,12 +27,14 @@ interface Listing {
   beds: number;
   baths: number;
   sqft: number;
+  floorNumber: number;
   furnished: boolean;
   utilities: boolean;
   gender: "any" | "male" | "female";
   tags: string[];
   accent: string;
   photo: string;
+  photos: string[];
 }
 
 interface Application {
@@ -45,6 +48,10 @@ interface Application {
   phone: string;
   lease: string;
   moveIn: string;
+  avatar?: string;
+  email?: string;
+  studentId?: string;
+  year?: string;
 }
 
 
@@ -58,18 +65,13 @@ const ACCENT_BG: Record<string, string> = {
   orange:"from-orange-500/25 to-amber-500/10",     fuchsia:"from-fuchsia-500/25 to-pink-500/10",
 };
 
-const UNIVERSITIES = [
-  "Cairo University","Ain Shams University",
-  "American University in Cairo (AUC)","German University in Cairo (GUC)",
-  "Helwan University","Mansoura University","October University (MUST)",
-  "Misr International University (MIU)","Future University in Egypt (FUE)",
-];
+const UNIVERSITIES = CAIRO_GIZA_UNIVERSITIES;
 
 const INIT_SAVED: number[] = [];
 const INIT_APPS: Application[] = [];
 
 const EN = {
-  brand:"SAKENI", student:"Student", findYourHome:"Find Your Perfect Home",
+  brand:"Sakeni (سكني)", student:"Student", findYourHome:"Find Your Perfect Home",
   searchPlaceholder:"Search by city, district or university...",
   search:"Search", filtersBtn:"Filters", sortBtn:"Sort", clearAll:"Clear all",
   maxPrice:"Max Price (EGP/mo)", cityLabel:"City", bedsLabel:"Bedrooms", furnishedLabel:"Furnished",
@@ -97,7 +99,7 @@ const EN = {
   viewDetails:"View Details", signOut:"Sign Out",
 };
 const AR: typeof EN = {
-  brand:"ساكني", student:"الطالب", findYourHome:"ابحث عن منزلك المثالي",
+  brand:"سكني", student:"الطالب", findYourHome:"ابحث عن منزلك المثالي",
   searchPlaceholder:"ابحث بالمدينة أو الحي أو الجامعة...",
   search:"بحث", filtersBtn:"الفلاتر", sortBtn:"ترتيب", clearAll:"مسح الكل",
   maxPrice:"أقصى سعر (جنيه/شهر)", cityLabel:"المدينة", bedsLabel:"غرف النوم", furnishedLabel:"مفروش",
@@ -143,6 +145,7 @@ export default function StudentPage() {
   const [sortKey, setSortKey] = useState<SortKey>("default");
   const [applyTarget, setApplyTarget] = useState<Listing | null>(null);
   const [viewTarget,  setViewTarget]  = useState<Listing | null>(null);
+  const [galleryIndex, setGalleryIndex] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
   const [form,       setForm]   = useState({ ...BLANK_FORM });
   const [formErrors, setFormErrors] = useState<Partial<typeof BLANK_FORM>>({});
@@ -169,30 +172,37 @@ export default function StudentPage() {
           district: string;
           price: number;
           sqft: number;
+          floorNumber?: number;
           beds: number;
           baths: number;
           status: string;
           photos: string[];
         }
         const parsed = (JSON.parse(ls) as LLListing[]).filter(l => l.status === "active");
-        const formatted: Listing[] = parsed.map((l: LLListing) => ({
-          id: l.id,
-          name: { en: l.name, ar: l.name },
-          loc: { en: `${l.city}, ${l.district}`, ar: `${l.city === "Cairo" ? "القاهرة" : "الجيزة"}، ${l.district}` },
-          city: l.city,
-          nearUniversity: "Cairo University",
-          price: l.price,
-          deposit: l.price,
-          beds: l.beds,
-          baths: l.baths,
-          sqft: l.sqft,
-          furnished: true,
-          utilities: false,
-          gender: "any",
-          tags: ["Dynamic"],
-          accent: "indigo",
-          photo: l.photos[0] || "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop"
-        }));
+        const fallbackPhoto = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop";
+        const formatted: Listing[] = parsed.map((l: LLListing) => {
+          const photos = Array.isArray(l.photos) ? l.photos.filter(Boolean) : [];
+          return {
+            id: l.id,
+            name: { en: l.name, ar: l.name },
+            loc: { en: `${l.city}, ${l.district}`, ar: `${l.city === "Cairo" ? "القاهرة" : "الجيزة"}، ${l.district}` },
+            city: l.city,
+            nearUniversity: "Cairo University",
+            price: l.price,
+            deposit: l.price,
+            beds: l.beds,
+            baths: l.baths,
+            sqft: l.sqft,
+            floorNumber: Number.isFinite(Number(l.floorNumber)) ? Number(l.floorNumber) : 0,
+            furnished: true,
+            utilities: false,
+            gender: "any",
+            tags: ["Dynamic"],
+            accent: "indigo",
+            photo: photos[0] || fallbackPhoto,
+            photos: photos.length ? photos : [fallbackPhoto],
+          };
+        });
         setListingsList(formatted);
       } else {
         setListingsList([]);
@@ -219,6 +229,10 @@ export default function StudentPage() {
     document.addEventListener("mousedown", fn);
     return () => document.removeEventListener("mousedown", fn);
   }, []);
+
+  useEffect(() => {
+    setGalleryIndex(0);
+  }, [viewTarget?.id]);
 
   const t = locale === "ar" ? AR : EN;
   const appliedIds = useMemo(() => new Set(apps.map(a => a.listingId)), [apps]);
@@ -287,6 +301,10 @@ export default function StudentPage() {
       message: form.message, name: form.name,
       university: form.university, phone: form.phone, lease: form.lease,
       moveIn: form.moveIn || new Date().toISOString().slice(0,10),
+      avatar: authUser?.selfieUrl || authUser?.avatar,
+      email: authUser?.email,
+      studentId: authUser?.studentId,
+      year: authUser?.year,
     }, ...prev]);
     setApplyTarget(null);
     showToast(t.appSubmitted, true);
@@ -311,7 +329,6 @@ export default function StudentPage() {
   const handleSignOut = () => {
     import("@/components/KYCModal").then(({ clearAuth }) => {
       clearAuth("student");
-      localStorage.removeItem("sk_saved");
       setAuthUser(null);
       window.location.reload();
     });
@@ -341,7 +358,7 @@ export default function StudentPage() {
             </button>
           )}
           <button onClick={() => setProfileOpen(true)} className="h-9 w-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-500/40 hover:scale-105 transition-transform">
-            {authUser?.avatar ?? "ST"}
+            {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "ST"}
           </button>
         </div>
       </header>
@@ -619,7 +636,18 @@ export default function StudentPage() {
             </div>
             <InputField label={t.fullName} field="name" placeholder="e.g. Ahmed Hassan" form={form} formErrors={formErrors} onChange={handleInputChange} />
             <InputField label={t.phone} field="phone" type="tel" placeholder="+20 1xx xxx xxxx" form={form} formErrors={formErrors} onChange={handleInputChange} />
-            <InputField label={t.university} field="university" placeholder="e.g. Cairo University" form={form} formErrors={formErrors} onChange={handleInputChange} />
+            <div>
+              <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.university}</label>
+              <select
+                value={form.university}
+                onChange={setField("university")}
+                className={`w-full bg-[#0d0d22] border rounded-lg px-3 py-2.5 text-sm focus:outline-none transition-all text-white ${formErrors.university ? "border-rose-500/60" : "border-white/10 focus:border-emerald-500/40"}`}
+              >
+                <option value="" className="bg-[#12122b] text-white">Select university</option>
+                {UNIVERSITIES.map(u => <option key={u} value={u} className="bg-[#12122b] text-white">{u}</option>)}
+              </select>
+              {formErrors.university && <p className="text-rose-400 text-xs mt-1">{formErrors.university}</p>}
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="block text-xs text-muted-foreground mb-1 font-medium">{t.moveIn}</label>
@@ -652,12 +680,51 @@ export default function StudentPage() {
       <Modal open={!!viewTarget} title={viewTarget?.name[locale] ?? ""} onClose={() => setViewTarget(null)}>
         {viewTarget && (() => {
           const bg = ACCENT_BG[viewTarget.accent] ?? ACCENT_BG.emerald;
+          const photos = viewTarget.photos.length ? viewTarget.photos : [viewTarget.photo];
+          const activePhoto = photos[Math.min(galleryIndex, photos.length - 1)];
+          const moveGallery = (delta: number) => {
+            setGalleryIndex(i => (i + delta + photos.length) % photos.length);
+          };
           return (
             <div className="space-y-4">
               <div className={`h-44 rounded-xl bg-gradient-to-br ${bg} relative overflow-hidden`}>
-                <img src={viewTarget.photo} alt={viewTarget.name[locale]} className="absolute inset-0 w-full h-full object-cover opacity-70" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
+                <img src={activePhoto} alt={viewTarget.name[locale]} className="absolute inset-0 w-full h-full object-cover opacity-80" onError={e => { (e.target as HTMLImageElement).style.display="none"; }} />
                 <Home className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 text-white/15"/>
+                {photos.length > 1 && (
+                  <>
+                    <button
+                      onClick={() => moveGallery(-1)}
+                      className="absolute left-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/70 transition-all"
+                      aria-label="Previous photo"
+                    >
+                      <ChevronLeft className="w-5 h-5" />
+                    </button>
+                    <button
+                      onClick={() => moveGallery(1)}
+                      className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-full bg-black/55 text-white flex items-center justify-center hover:bg-black/70 transition-all"
+                      aria-label="Next photo"
+                    >
+                      <ChevronRight className="w-5 h-5" />
+                    </button>
+                    <span className="absolute bottom-2 right-2 rounded-full bg-black/60 px-2.5 py-1 text-xs font-semibold text-white">
+                      {Math.min(galleryIndex, photos.length - 1) + 1}/{photos.length}
+                    </span>
+                  </>
+                )}
               </div>
+              {photos.length > 1 && (
+                <div className="flex gap-2 overflow-x-auto pb-1">
+                  {photos.map((photo, index) => (
+                    <button
+                      key={`${photo}-${index}`}
+                      onClick={() => setGalleryIndex(index)}
+                      className={`h-14 w-20 shrink-0 rounded-lg overflow-hidden border transition-all ${index === galleryIndex ? "border-emerald-400" : "border-white/10 opacity-70 hover:opacity-100"}`}
+                    >
+                      <img src={photo} alt="" className="w-full h-full object-cover" />
+                    </button>
+                  ))}
+                </div>
+              )}
               <div className="flex justify-between items-center">
                 <div>
                   <p className="text-2xl font-bold text-emerald-400">EGP {viewTarget.price.toLocaleString()}<span className="text-sm text-muted-foreground font-normal"> {t.perMonth}</span></p>
@@ -672,6 +739,7 @@ export default function StudentPage() {
                 <span className="flex items-center gap-1"><Bed className="w-3.5 h-3.5"/>{viewTarget.beds} {t.beds}</span>
                 <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5"/>{viewTarget.baths} {t.baths}</span>
                 <span className="flex items-center gap-1"><Square className="w-3.5 h-3.5"/>{viewTarget.sqft} {t.sqm}</span>
+                <span>Floor {viewTarget.floorNumber}</span>
               </div>
               <div className="flex flex-wrap gap-1.5">
                 {viewTarget.tags.map(tag => <span key={tag} className="text-xs bg-white/8 border border-white/10 text-white/60 px-2.5 py-1 rounded-full">{tag}</span>)}
@@ -701,7 +769,7 @@ export default function StudentPage() {
         <div className="space-y-1 text-sm">
           <div className="text-center mb-5">
             <div className="w-16 h-16 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center font-bold text-xl mx-auto mb-3">
-              {authUser?.avatar ?? "ST"}
+              {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "ST"}
             </div>
             <p className="font-bold text-lg">{authUser?.name ?? "Student User"}</p>
             <p className="text-xs text-muted-foreground">{authUser?.email ?? "student@sakeni.eg"}</p>
@@ -792,6 +860,7 @@ function ListingCard({ l, locale, t, appliedIds, saved, toggleSave, openApply, s
           <span className="flex items-center gap-1"><Bed  className="w-3 h-3"/>{l.beds}  {t.beds}</span>
           <span className="flex items-center gap-1"><Bath className="w-3 h-3"/>{l.baths} {t.baths}</span>
           <span className="flex items-center gap-1"><Square className="w-3 h-3"/>{l.sqft} {t.sqm}</span>
+          <span>Floor {l.floorNumber}</span>
         </div>
 
         <p className="text-xs text-muted-foreground">{t.depositLabel}: <span className="text-white/60 font-medium">EGP {l.deposit.toLocaleString()}</span></p>
