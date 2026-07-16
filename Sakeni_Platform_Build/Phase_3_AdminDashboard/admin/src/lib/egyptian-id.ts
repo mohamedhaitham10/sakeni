@@ -64,9 +64,6 @@ export function parseEgyptianNationalID(id: string): ParsedID {
   const govCode = id.slice(7, 9);
   const governorate = GOVERNORATES[govCode];
   if (!governorate) return { isValid: false, error: "Invalid governorate code." };
-  if (govCode !== "01" && govCode !== "21") {
-    return { isValid: false, error: "Currently only Cairo (01) & Giza (21) governorates are supported." };
-  }
 
   const genderDigit = parseInt(id[12], 10);
   const gender = genderDigit % 2 === 0 ? "Female" : "Male";

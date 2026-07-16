@@ -31,7 +31,7 @@ Required production secrets include:
 ## Authentication And Identity
 
 - Signup accepts only official government-issued IDs.
-- Egyptian National ID parsing is restricted to Cairo and Giza governorates for the current launch scope.
+- Egyptian National ID parsing accepts all valid Egyptian governorate codes; student university selection remains restricted to Cairo and Giza universities for launch.
 - New demo-mode passwords are stored as PBKDF2-SHA256 verifiers, not plaintext.
 - Production Supabase Auth should remain the source of truth for real accounts and sessions.
 - Do not process real government ID images through browser-local demo mode. Production KYC documents must use the Supabase Storage buckets and RLS policies from the latest migration.

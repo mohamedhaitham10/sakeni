@@ -23,12 +23,14 @@ describe("parseEgyptianNationalID", () => {
     });
   });
 
-  it("rejects valid IDs from unsupported governorates", () => {
+  it("accepts valid IDs from any Egyptian governorate", () => {
     const result = parseEgyptianNationalID("29901010212356");
 
-    expect(result.isValid).toBe(false);
-    expect(result.error).toContain("Cairo");
-    expect(result.error).toContain("Giza");
+    expect(result).toMatchObject({
+      isValid: true,
+      birthdate: "1999-01-01",
+      governorate: "Alexandria",
+    });
   });
 
   it("rejects impossible dates", () => {

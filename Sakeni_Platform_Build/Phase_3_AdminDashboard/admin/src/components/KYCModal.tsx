@@ -35,6 +35,24 @@ export interface AuthUser {
 
 const STORAGE_KEY = (role: AuthRole) => `sk_auth_${role}`;
 const ACCOUNTS_KEY = (role: AuthRole) => `sk_accounts_${role}`;
+const MAX_STORED_IMAGE_CHARS = 450_000;
+
+function compactUserForStorage(user: AuthUser): AuthUser {
+  return {
+    ...user,
+    governmentIdUrl: undefined,
+    selfieUrl: user.selfieUrl && user.selfieUrl.length <= MAX_STORED_IMAGE_CHARS ? user.selfieUrl : undefined,
+  };
+}
+
+function saveJson(key: string, value: unknown) {
+  try {
+    localStorage.setItem(key, JSON.stringify(value));
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function getAccounts(role: AuthRole): AuthUser[] {
   try {
@@ -44,9 +62,14 @@ function getAccounts(role: AuthRole): AuthUser[] {
 }
 
 function saveAccount(role: AuthRole, user: AuthUser) {
-  const accounts = getAccounts(role).filter(a => a.email.toLowerCase() !== user.email.toLowerCase());
-  accounts.unshift(user);
-  try { localStorage.setItem(ACCOUNTS_KEY(role), JSON.stringify(accounts)); } catch { /* ignore */ }
+  const compactUser = compactUserForStorage(user);
+  const accounts = getAccounts(role)
+    .map(compactUserForStorage)
+    .filter(a => a.email.toLowerCase() !== compactUser.email.toLowerCase());
+  const nextAccounts = [compactUser, ...accounts];
+  if (!saveJson(ACCOUNTS_KEY(role), nextAccounts)) {
+    saveJson(ACCOUNTS_KEY(role), nextAccounts.map(account => ({ ...account, governmentIdUrl: undefined, selfieUrl: undefined })));
+  }
 }
 
 export function getStoredAccount(role: AuthRole, email: string): AuthUser | null {
@@ -61,9 +84,12 @@ export function getAuth(role: AuthRole): AuthUser | null {
 }
 
 export function setAuth(role: AuthRole, user: AuthUser) {
+  const compactUser = compactUserForStorage(user);
   try {
-    localStorage.setItem(STORAGE_KEY(role), JSON.stringify(user));
-    saveAccount(role, user);
+    if (!saveJson(STORAGE_KEY(role), compactUser)) {
+      saveJson(STORAGE_KEY(role), { ...compactUser, selfieUrl: undefined });
+    }
+    saveAccount(role, compactUser);
   } catch { /* ignore */ }
 }
 
@@ -163,7 +189,7 @@ export function KYCModal({ role, onAuth }: Props) {
     setIsUploading(true);
     setError("");
     try {
-      const dataUrl = await imageFileToDataUrl(file, 900, 0.85);
+      const dataUrl = await imageFileToDataUrl(file, 360, 0.78);
       setSelfieUrl(dataUrl);
       setSelfieFileName(file.name);
       setSelfieUploaded(true);
@@ -203,7 +229,21 @@ export function KYCModal({ role, onAuth }: Props) {
     const stored = getStoredAccount(role, form.email) ?? getAuth(role);
     if (stored && stored.email.toLowerCase() === form.email.trim().toLowerCase()) {
       if (!stored.passwordVerifier) {
-        setError("This account needs a secure password reset. Please create the account again.");
+        if (form.password.length < 8) {
+          setError("Enter an 8+ character password to secure this existing account.");
+          return;
+        }
+        try {
+          const migrated = {
+            ...stored,
+            passwordVerifier: await createPasswordVerifier(form.password),
+          };
+          setAuth(role, migrated);
+          onAuth(migrated);
+          return;
+        } catch {
+          setError("Could not secure this account. Please try again.");
+        }
         return;
       }
       if (!(await verifyPassword(form.password, stored.passwordVerifier))) {

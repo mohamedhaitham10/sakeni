@@ -35,6 +35,8 @@ interface Listing {
   accent: string;
   photo: string;
   photos: string[];
+  landlordName?: string;
+  landlordEmail?: string;
 }
 
 interface Application {
@@ -52,6 +54,8 @@ interface Application {
   email?: string;
   studentId?: string;
   year?: string;
+  landlordName?: string;
+  landlordEmail?: string;
 }
 
 
@@ -177,6 +181,8 @@ export default function StudentPage() {
           baths: number;
           status: string;
           photos: string[];
+          landlordName?: string;
+          landlordEmail?: string;
         }
         const parsed = (JSON.parse(ls) as LLListing[]).filter(l => l.status === "active");
         const fallbackPhoto = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop";
@@ -201,6 +207,8 @@ export default function StudentPage() {
             accent: "indigo",
             photo: photos[0] || fallbackPhoto,
             photos: photos.length ? photos : [fallbackPhoto],
+            landlordName: l.landlordName,
+            landlordEmail: l.landlordEmail,
           };
         });
         setListingsList(formatted);
@@ -305,6 +313,8 @@ export default function StudentPage() {
       email: authUser?.email,
       studentId: authUser?.studentId,
       year: authUser?.year,
+      landlordName: applyTarget?.landlordName,
+      landlordEmail: applyTarget?.landlordEmail,
     }, ...prev]);
     setApplyTarget(null);
     showToast(t.appSubmitted, true);

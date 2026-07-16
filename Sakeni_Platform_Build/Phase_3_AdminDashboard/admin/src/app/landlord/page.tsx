@@ -28,6 +28,8 @@ interface Listing {
   applicants: number;
   status: Status;
   photos: string[];
+  landlordName?: string;
+  landlordEmail?: string;
 }
 
 interface Applicant {
@@ -45,6 +47,8 @@ interface Applicant {
   studentId?: string;
   year?: string;
   submittedAt?: string;
+  landlordName?: string;
+  landlordEmail?: string;
 }
 
 const EN = {
@@ -160,6 +164,8 @@ export default function LandlordPage() {
           status: listing.status === "active" ? "active" : listing.status === "rejected" ? "rejected" : "pending_review",
           floorNumber: Number.isFinite(Number(listing.floorNumber)) ? Number(listing.floorNumber) : 0,
           photos: Array.isArray(listing.photos) ? listing.photos.filter(isSupportedPhotoUrl).slice(0, 15) : [],
+          landlordName: listing.landlordName,
+          landlordEmail: listing.landlordEmail,
         })));
       }
       const as_ = localStorage.getItem("sk_ll_applicants");
@@ -174,10 +180,29 @@ export default function LandlordPage() {
   const close     = () => setModal(null);
   const showToast = (msg:string) => { setToast(msg); setTimeout(() => setToast(""), 2400); };
 
-  const activeCount  = listings.filter(l => l.status === "active").length;
-  const totalViews   = listings.reduce((s,l) => s + l.views, 0);
-  const pendingCount = applicants.filter(a => a.status === "pending").length;
-  const monthlyRev   = listings.filter(l => l.status === "active").reduce((s,l) => s + l.price, 0);
+  const authEmail = authUser?.email?.trim().toLowerCase();
+  const authName = authUser?.name?.trim().toLowerCase();
+  const ownsListing = (listing: Listing) => {
+    const listingEmail = listing.landlordEmail?.trim().toLowerCase();
+    const listingName = listing.landlordName?.trim().toLowerCase();
+    if (!listingEmail && !listingName) return true;
+    return (!!authEmail && listingEmail === authEmail) || (!!authName && listingName === authName);
+  };
+  const ownsApplication = (applicant: Applicant) => {
+    const listing = listings.find(l => l.id === applicant.listingId);
+    if (listing) return ownsListing(listing);
+    const appEmail = applicant.landlordEmail?.trim().toLowerCase();
+    const appName = applicant.landlordName?.trim().toLowerCase();
+    if (!appEmail && !appName) return true;
+    return (!!authEmail && appEmail === authEmail) || (!!authName && appName === authName);
+  };
+  const ownedListings = listings.filter(ownsListing);
+  const landlordApplicants = applicants.filter(ownsApplication);
+
+  const activeCount  = ownedListings.filter(l => l.status === "active").length;
+  const totalViews   = ownedListings.reduce((s,l) => s + l.views, 0);
+  const pendingCount = landlordApplicants.filter(a => a.status === "pending").length;
+  const monthlyRev   = ownedListings.filter(l => l.status === "active").reduce((s,l) => s + l.price, 0);
 
   const statusCls: Record<Status, string> = {
     active:      "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
@@ -255,11 +280,11 @@ export default function LandlordPage() {
 
     if (modal?.type === "add") {
       const newId = Math.max(0, ...listings.map(l => l.id)) + 1;
-      setListings(prev => [...prev, { id:newId, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), floorNumber, beds:Number(form.beds), baths:Number(form.baths), description:form.description, views:0, applicants:0, status:"pending_review", photos }]);
+      setListings(prev => [...prev, { id:newId, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), floorNumber, beds:Number(form.beds), baths:Number(form.baths), description:form.description, views:0, applicants:0, status:"pending_review", photos, landlordName: authUser?.name, landlordEmail: authUser?.email }]);
       showToast(t.toastAdded);
     } else if (modal?.type === "edit" && modal.data) {
       const id = (modal.data as Listing).id;
-      setListings(prev => prev.map(l => l.id === id ? { ...l, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), floorNumber, beds:Number(form.beds), baths:Number(form.baths), description:form.description, status:"pending_review", photos } : l));
+      setListings(prev => prev.map(l => l.id === id ? { ...l, name:form.name, city:form.city, district:form.district, price:Number(form.price), sqft:Number(form.sqft), floorNumber, beds:Number(form.beds), baths:Number(form.baths), description:form.description, status:"pending_review", photos, landlordName: l.landlordName ?? authUser?.name, landlordEmail: l.landlordEmail ?? authUser?.email } : l));
       showToast(t.toastUpdated);
     }
     close();
@@ -281,8 +306,8 @@ export default function LandlordPage() {
   };
 
   const visibleApps = filterListingId
-    ? applicants.filter(a => a.listingId === filterListingId)
-    : applicants;
+    ? landlordApplicants.filter(a => a.listingId === filterListingId)
+    : landlordApplicants;
 
   const handleFormChange = (name: keyof typeof EMPTY_FORM, value: string) => {
     setForm(f => ({ ...f, [name]: value }));
@@ -372,7 +397,7 @@ export default function LandlordPage() {
               <div className="p-3 bg-amber-500/10 rounded-xl group-hover:bg-amber-500/20 transition-colors"><Building2 className="w-5 h-5 text-amber-400"/></div>
               <div className="flex-1">
                 <p className="font-semibold text-sm">{t.manageListings}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{activeCount} active · {listings.length} total</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{activeCount} active · {ownedListings.length} total</p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground"/>
             </button>
@@ -380,7 +405,7 @@ export default function LandlordPage() {
               <div className="p-3 bg-indigo-500/10 rounded-xl group-hover:bg-indigo-500/20 transition-colors"><Users className="w-5 h-5 text-indigo-400"/></div>
               <div className="flex-1">
                 <p className="font-semibold text-sm">{t.viewApplications}</p>
-                <p className="text-xs text-muted-foreground mt-0.5">{pendingCount} pending · {applicants.length} total</p>
+                <p className="text-xs text-muted-foreground mt-0.5">{pendingCount} pending · {landlordApplicants.length} total</p>
               </div>
               <ChevronRight className="w-4 h-4 text-muted-foreground"/>
             </button>
@@ -389,7 +414,7 @@ export default function LandlordPage() {
 
         {/* ── Tab nav ── */}
         <div className="flex gap-0.5 border-b border-white/8">
-          {([["listings",t.myListings],["applications",`${t.applicationsTab} (${applicants.length})`]] as [Tab,string][]).map(([id,label]) => (
+          {([["listings",t.myListings],["applications",`${t.applicationsTab} (${landlordApplicants.length})`]] as [Tab,string][]).map(([id,label]) => (
             <button key={id} onClick={() => setTab(id)} className={`px-4 py-2.5 text-sm font-medium transition-all rounded-t-lg ${tab===id ? "text-amber-400 border-b-2 border-amber-500 bg-amber-500/5" : "text-muted-foreground hover:text-white"}`}>{label}</button>
           ))}
         </div>
@@ -397,10 +422,10 @@ export default function LandlordPage() {
         {/* ── Listings panel ── */}
         {tab === "listings" && (
           <div ref={listingsRef} className="space-y-4">
-            {listings.length === 0 && (
+            {ownedListings.length === 0 && (
               <div className="glass-card p-12 text-center text-muted-foreground text-sm">No listings yet. Add your first property.</div>
             )}
-            {listings.map(l => {
+            {ownedListings.map(l => {
               const convRate = l.views > 0 ? ((l.applicants / l.views) * 100).toFixed(1) : "0.0";
               return (
                 <div key={l.id} className="glass-card overflow-hidden">
@@ -491,11 +516,12 @@ export default function LandlordPage() {
               <div className="glass-card p-12 text-center text-muted-foreground text-sm">{t.noApps}</div>
             ) : visibleApps.map(a => {
               const listing = listings.find(l => l.id === a.listingId);
+              const avatarIsImage = !!a.avatar && (a.avatar.startsWith("data:image/") || /^https?:\/\//.test(a.avatar));
               return (
                 <div key={a.id} className="glass-card p-4 hover:border-white/20 transition-all cursor-pointer" onClick={() => setModal({ type:"applicant", data:a })}>
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-400 font-bold text-sm shrink-0">
-                      {a.name.split(" ").map(n=>n[0]).join("").slice(0,2)}
+                    <div className="w-10 h-10 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-400 font-bold text-sm shrink-0 overflow-hidden">
+                      {avatarIsImage ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" /> : a.name.split(" ").map(n=>n[0]).join("").slice(0,2)}
                     </div>
                     <div className="flex-1 min-w-0">
                       <p className="font-semibold text-sm">{a.name}</p>
@@ -679,7 +705,7 @@ export default function LandlordPage() {
 
       {/* ── Views breakdown ── */}
       <Modal open={modal?.type==="viewsBreakdown"} title={t.totalViews} onClose={close}>
-        {listings.map(l => (
+        {ownedListings.map(l => (
           <div key={l.id} className="flex justify-between py-2.5 border-b border-white/6 text-sm last:border-none">
             <span className="text-muted-foreground truncate max-w-[200px]">{l.name}</span>
             <span className="font-bold">{l.views.toLocaleString()} {t.viewsLabel}</span>
@@ -727,11 +753,12 @@ export default function LandlordPage() {
         {modal?.data && (() => {
           const a = modal.data as Applicant;
           const listing = listings.find(l => l.id === a.listingId);
+          const avatarIsImage = !!a.avatar && (a.avatar.startsWith("data:image/") || /^https?:\/\//.test(a.avatar));
           return (
             <div className="space-y-1 text-sm">
               <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/5 p-3 mb-3">
                 <div className="w-12 h-12 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-300 font-bold shrink-0 overflow-hidden">
-                  {a.avatar?.startsWith("data:image/") ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" /> : (a.avatar || a.name.split(" ").map(n=>n[0]).join("").slice(0,2))}
+                  {avatarIsImage ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" /> : (a.avatar || a.name.split(" ").map(n=>n[0]).join("").slice(0,2))}
                 </div>
                 <div className="min-w-0">
                   <p className="font-bold text-white truncate">{a.name}</p>
@@ -791,7 +818,7 @@ export default function LandlordPage() {
             ["Property Type", authUser?.propertyType ?? "—"],
             ["Phone", authUser?.phone ?? "—"],
             ["Active Listings", String(activeCount)],
-            ["Total Applications", String(applicants.length)],
+            ["Total Applications", String(landlordApplicants.length)],
             ["Monthly Revenue", `EGP ${monthlyRev.toLocaleString()}`],
           ].map(([k,v]) => (
             <div key={k} className="flex justify-between py-2.5 border-b border-white/6 last:border-none">
