@@ -1,77 +1,132 @@
 import OpenAI from "https://deno.land/x/openai/mod.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.39.0";
+import {
+  HttpError,
+  assertOnlyKeys,
+  assertPlainObject,
+  assertString,
+  assertUuid,
+  bearerToken,
+  checkRateLimit,
+  corsContext,
+  errorResponse,
+  jsonResponse,
+  optionalUuidArray,
+  readJsonBody,
+  requireEnv,
+} from "../_shared/http.ts";
 
-function corsHeaders(req: Request) {
-  const allowedOrigins = (Deno.env.get("ALLOWED_ORIGINS") ?? "http://localhost:3000")
-    .split(",")
-    .map((origin) => origin.trim())
-    .filter(Boolean);
-  const requestOrigin = req.headers.get("Origin") ?? "";
-  const allowedOrigin = allowedOrigins.includes(requestOrigin) ? requestOrigin : allowedOrigins[0];
+function parseFilters(value: unknown) {
+  if (value === undefined) return {};
+  const filters = assertPlainObject(value, "filters");
+  const entries = Object.entries(filters);
+  if (entries.length > 20) throw new HttpError(400, "filters has too many fields");
 
-  return {
-    "Access-Control-Allow-Origin": allowedOrigin,
-    "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-    "Access-Control-Allow-Methods": "POST, OPTIONS",
-    "Vary": "Origin",
-  };
+  const safeFilters: Record<string, string | number | boolean | null> = {};
+  for (const [key, rawValue] of entries) {
+    if (!/^[a-zA-Z0-9_]{1,40}$/.test(key)) throw new HttpError(400, "filters contains an invalid key");
+    if (rawValue === null || typeof rawValue === "boolean") {
+      safeFilters[key] = rawValue;
+    } else if (typeof rawValue === "number" && Number.isFinite(rawValue) && Math.abs(rawValue) <= 1_000_000) {
+      safeFilters[key] = rawValue;
+    } else if (typeof rawValue === "string") {
+      safeFilters[key] = assertString(rawValue, `filters.${key}`, { max: 200 });
+    } else {
+      throw new HttpError(400, `filters.${key} has an unsupported value`);
+    }
+  }
+  return safeFilters;
+}
+
+function parseRankedIds(content: string | null, candidateIds: Set<string>) {
+  if (!content) return [];
+  try {
+    const parsed = assertPlainObject(JSON.parse(content), "recommendation result");
+    const ranked = parsed.ranked_ids;
+    if (!Array.isArray(ranked)) return [];
+    return ranked
+      .filter((id): id is string => typeof id === "string" && candidateIds.has(id))
+      .slice(0, 5);
+  } catch {
+    return [];
+  }
 }
 
 Deno.serve(async (req) => {
-  const headers = corsHeaders(req);
-  if (req.method === "OPTIONS") return new Response("ok", { headers });
-  if (req.method !== "POST") return new Response("Method not allowed", { status: 405, headers });
-
-  const { student_id, viewed_listing_ids, saved_listing_ids, filters } = await req.json();
-  
-  const supabaseUrl = Deno.env.get("SUPABASE_URL");
-  const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!supabaseUrl || !supabaseKey) return new Response("Missing env", { status: 500, headers });
-  const supabase = createClient(supabaseUrl, supabaseKey);
-
-  const token = req.headers.get("Authorization")?.replace(/^Bearer\s+/i, "");
-  if (!token) return new Response("Unauthorized", { status: 401, headers });
-
-  const { data: authData, error: authError } = await supabase.auth.getUser(token);
-  if (authError || !authData.user) return new Response("Unauthorized", { status: 401, headers });
-  if (authData.user.id !== student_id) return new Response("Forbidden", { status: 403, headers });
-  
-  // Fetch student profile
-  const { data: profile } = await supabase.from("profiles").select("university").eq("id", student_id).single();
-  
-  // Fetch candidate listings
-  let query = supabase
-    .from("listings")
-    .select("id, title, listing_type, monthly_rent, area, nearest_university, distance_to_university_km, is_furnished, has_wifi")
-    .eq("status", "active")
-    .limit(50);
-    
-  if (viewed_listing_ids && viewed_listing_ids.length > 0) {
-      query = query.not("id", "in", `(${viewed_listing_ids.join(",")})`);
+  const cors = corsContext(req);
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { status: cors.originAllowed ? 200 : 403, headers: cors.headers });
   }
+  if (!cors.originAllowed) return jsonResponse({ error: "Forbidden origin" }, { status: 403, headers: cors.headers });
+  if (req.method !== "POST") return jsonResponse({ error: "Method not allowed" }, { status: 405, headers: cors.headers });
 
-  const { data: listings } = await query;
+  try {
+    const body = assertPlainObject(await readJsonBody(req), "body");
+    assertOnlyKeys(body, ["student_id", "viewed_listing_ids", "saved_listing_ids", "filters"]);
 
-  const openai = new OpenAI({ apiKey: Deno.env.get("OPENAI_API_KEY") });
-  const completion = await openai.chat.completions.create({
-    model: "gpt-4o-mini",
-    response_format: { type: "json_object" },
-    messages: [{
-      role: "system",
-      content: `You are a housing recommendation engine. Given a student's preferences and a list of listings, 
-      return the top 5 listing IDs ranked by fit. Return JSON: { "ranked_ids": ["uuid1", "uuid2", ...] }`
-    }, {
-      role: "user",
-      content: JSON.stringify({
-        student: { university: profile?.university, filters },
-        saved_ids: saved_listing_ids,
-        candidates: listings
-      })
-    }]
-  });
+    const studentId = assertUuid(body.student_id, "student_id");
+    const viewedListingIds = optionalUuidArray(body.viewed_listing_ids, "viewed_listing_ids", 100);
+    const savedListingIds = optionalUuidArray(body.saved_listing_ids, "saved_listing_ids", 100);
+    const filters = parseFilters(body.filters);
 
-  const content = completion.choices[0].message.content;
-  const result = content ? JSON.parse(content) : { ranked_ids: [] };
-  
-  return new Response(JSON.stringify(result), { headers: { ...headers, "Content-Type": "application/json" } });
+    const supabase = createClient(requireEnv("SUPABASE_URL"), requireEnv("SUPABASE_SERVICE_ROLE_KEY"));
+    const token = bearerToken(req);
+    const { data: authData, error: authError } = await supabase.auth.getUser(token);
+    if (authError || !authData.user) throw new HttpError(401, "Unauthorized");
+    if (authData.user.id !== studentId) throw new HttpError(403, "Forbidden");
+
+    const rate = checkRateLimit(`recommend:${authData.user.id}`, 30, 60_000);
+    if (!rate.allowed) {
+      return jsonResponse(
+        { error: "Too many requests" },
+        { status: 429, headers: { ...cors.headers, "Retry-After": String(rate.retryAfter) } },
+      );
+    }
+
+    const { data: profile } = await supabase.from("profiles").select("university").eq("id", studentId).single();
+
+    let query = supabase
+      .from("listings")
+      .select("id, title, listing_type, monthly_rent, area, nearest_university, distance_to_university_km, is_furnished, has_wifi")
+      .eq("status", "active")
+      .limit(50);
+
+    if (viewedListingIds.length > 0) {
+      query = query.not("id", "in", `(${viewedListingIds.join(",")})`);
+    }
+
+    const { data: listings, error: listingsError } = await query;
+    if (listingsError) throw new HttpError(500, "Unable to load recommendations");
+
+    const candidateIds = new Set((listings ?? []).map((listing) => String(listing.id)));
+    const openAiKey = Deno.env.get("OPENAI_API_KEY")?.trim();
+    if (!openAiKey) {
+      return jsonResponse({
+        ranked_ids: [...candidateIds].slice(0, 5),
+        provider: "local",
+      }, { headers: cors.headers });
+    }
+
+    const openai = new OpenAI({ apiKey: openAiKey });
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      response_format: { type: "json_object" },
+      messages: [{
+        role: "system",
+        content: "Rank student housing listings. Return JSON only: {\"ranked_ids\":[\"uuid\"]}.",
+      }, {
+        role: "user",
+        content: JSON.stringify({
+          student: { university: profile?.university, filters },
+          saved_ids: savedListingIds,
+          candidates: listings,
+        }),
+      }],
+    });
+
+    const rankedIds = parseRankedIds(completion.choices[0].message.content, candidateIds);
+    return jsonResponse({ ranked_ids: rankedIds, provider: "openai" }, { headers: cors.headers });
+  } catch (error) {
+    return errorResponse(error, cors.headers);
+  }
 });

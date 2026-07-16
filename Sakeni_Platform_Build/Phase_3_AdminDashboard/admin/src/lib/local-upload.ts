@@ -1,6 +1,12 @@
 const IMAGE_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
+const IMAGE_EXTENSION_PATTERN = /\.(jpe?g|png|webp)$/i;
+const SAFE_FILENAME_PATTERN = /^[\w .()@+-]{1,180}$/;
+const LOCALHOST_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
 
 export function validateImageFile(file: File, maxBytes = 5 * 1024 * 1024) {
+  if (!SAFE_FILENAME_PATTERN.test(file.name) || !IMAGE_EXTENSION_PATTERN.test(file.name)) {
+    return "Use a JPG, PNG, or WebP image with a safe filename.";
+  }
   if (!IMAGE_TYPES.has(file.type)) {
     return "Upload a JPG, PNG, or WebP image.";
   }
@@ -49,5 +55,14 @@ export async function imageFileToDataUrl(file: File, maxDimension = 1280, qualit
 }
 
 export function isSupportedPhotoUrl(value: string) {
-  return /^https?:\/\//i.test(value) || /^data:image\//i.test(value);
+  const trimmed = value.trim();
+  if (/^data:image\/(?:jpeg|png|webp);base64,[a-z0-9+/=\s]+$/i.test(trimmed)) return true;
+
+  try {
+    const url = new URL(trimmed);
+    if (url.protocol === "https:") return true;
+    return url.protocol === "http:" && LOCALHOST_HOSTS.has(url.hostname);
+  } catch {
+    return false;
+  }
 }

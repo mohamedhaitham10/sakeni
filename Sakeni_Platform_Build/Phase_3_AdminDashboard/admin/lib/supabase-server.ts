@@ -1,12 +1,15 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { getSupabaseServerEnv } from './env'
 
 export async function createClient() {
   const cookieStore = await cookies()
+  const { url, anonKey } = getSupabaseServerEnv()
+  const production = process.env.NODE_ENV === 'production'
 
   return createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+    url,
+    anonKey,
     {
       cookies: {
         get(name: string) {
@@ -14,14 +17,28 @@ export async function createClient() {
         },
         set(name: string, value: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value, ...options })
+            cookieStore.set({
+              name,
+              value,
+              ...options,
+              sameSite: options.sameSite ?? 'lax',
+              secure: production ? true : options.secure,
+              httpOnly: options.httpOnly ?? true,
+            })
           } catch {
             // Error handling for setting cookies in Server Components
           }
         },
         remove(name: string, options: CookieOptions) {
           try {
-            cookieStore.set({ name, value: '', ...options })
+            cookieStore.set({
+              name,
+              value: '',
+              ...options,
+              sameSite: options.sameSite ?? 'lax',
+              secure: production ? true : options.secure,
+              httpOnly: options.httpOnly ?? true,
+            })
           } catch {
             // Error handling for removing cookies in Server Components
           }

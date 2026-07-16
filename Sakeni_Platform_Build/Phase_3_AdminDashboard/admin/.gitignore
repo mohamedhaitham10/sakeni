@@ -26,7 +26,14 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
+.env
+.env.*
+!.env.example
 .env*.local
+**/signing_keys.json
+*.key
+*.p8
+*.p12
 
 # vercel
 .vercel

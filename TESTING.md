@@ -7,6 +7,7 @@ From `Sakeni_Platform_Build/Phase_3_AdminDashboard/admin`:
 ```bash
 npm ci
 npm run lint
+npm run typecheck
 npm run test:run
 npm run build
 npm run audit
@@ -20,9 +21,14 @@ npm run check
 
 ## Test Coverage Added
 
-- Egyptian National ID parsing, including Cairo/Giza restrictions and invalid dates.
+- Egyptian National ID parsing for all valid Egyptian governorates and invalid dates.
 - Cairo/Giza-only university onboarding list.
 - Password verifier creation and password verification failure cases.
+- Admin moderation validation, safe public errors, and actor labels.
+- Runtime environment validation and production CORS origin parsing.
+- Security header/CSP generation.
+- Audit-log redaction of secret-bearing fields.
+- Local upload filename/type/URL filtering.
 
 ## Manual Launch Smoke Test
 
@@ -39,4 +45,4 @@ npm run check
 
 ## CI
 
-Use `Sakeni_Platform_Build/GITHUB_ACTIONS_CI_TEMPLATE.yml` as the GitHub Actions workflow. It runs `npm run check` on push to `main` and on pull requests using Node 22.
+The active workflow is `.github/workflows/security-ci.yml`. It runs lint, typecheck, tests, build, npm audit, and a high-confidence secret scan on pull requests and on pushes to `main` or `security/**`.

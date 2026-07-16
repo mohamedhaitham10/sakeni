@@ -405,3 +405,14 @@ entrypoint = "./functions/recommend-listings/index.ts"
 # Specifies static files to be bundled with the function. Supports glob patterns.
 # For example, if you want to serve static HTML pages in your function:
 # static_files = [ "./functions/recommend-listings/*.html" ]
+
+[functions.verify-identity]
+enabled = true
+verify_jwt = true
+import_map = "./functions/verify-identity/deno.json"
+entrypoint = "./functions/verify-identity/index.ts"
+
+[functions.flag-listing]
+enabled = true
+verify_jwt = false
+entrypoint = "./functions/flag-listing/index.ts"

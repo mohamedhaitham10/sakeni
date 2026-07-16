@@ -5,10 +5,11 @@
 Sakeni now runs the following checks before release:
 
 - `npm run lint`
+- `npm run typecheck`
 - `npm run test:run`
 - `npm run build`
 - `npm run audit`
-- `Sakeni_Platform_Build/GITHUB_ACTIONS_CI_TEMPLATE.yml` can be copied into `.github/workflows/ci.yml` by a GitHub token with `workflow` scope.
+- `.github/workflows/security-ci.yml` runs least-privilege CI checks and a high-confidence secret scan after it is pushed.
 
 ## Environment Secrets
 
@@ -26,6 +27,8 @@ Required production secrets include:
 - `OPENAI_API_KEY`
 - `FACE_MATCH_API_URL`
 - `FACE_MATCH_API_KEY`
+- `APP_ENV`
+- `ALLOW_DEV_FACE_MATCH_FALLBACK=false` in production
 - Stripe, Resend, and Firebase keys when those integrations are enabled.
 
 ## Authentication And Identity
@@ -35,6 +38,7 @@ Required production secrets include:
 - New demo-mode passwords are stored as PBKDF2-SHA256 verifiers, not plaintext.
 - Production Supabase Auth should remain the source of truth for real accounts and sessions.
 - Do not process real government ID images through browser-local demo mode. Production KYC documents must use the Supabase Storage buckets and RLS policies from the latest migration.
+- Production identity verification fails closed if the configured face-match provider is unavailable.
 
 ## Supabase Controls
 
@@ -44,7 +48,7 @@ Apply all migrations in `Sakeni_Platform_Build/Phase_1_Database/supabase/migrati
 - `flag-listing`
 - `verify-identity`
 
-The hardened edge functions require authenticated requests, controlled origins through `ALLOWED_ORIGINS`, and webhook secrets where applicable.
+The hardened edge functions require authenticated requests, controlled origins through `ALLOWED_ORIGINS`, strict JSON payloads, request limits, and webhook replay headers where applicable.
 
 ## Reporting
 
