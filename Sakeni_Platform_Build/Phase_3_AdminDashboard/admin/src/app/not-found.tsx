@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Compass, Home, LayoutDashboard, ShieldCheck } from "lucide-react";
+import { ThemeToggle } from "@/components/ThemeToggle";
 
 const destinations = [
   { href: "/portal", label: "Open Portal", icon: Compass },
@@ -9,8 +10,11 @@ const destinations = [
 
 export default function NotFound() {
   return (
-    <main className="min-h-screen bg-[#060613] text-white flex items-center justify-center p-4">
-      <section className="w-full max-w-xl rounded-2xl border border-white/10 bg-[#0c0c1e] p-7 shadow-2xl">
+    <main className="relative flex min-h-screen items-center justify-center p-4 text-foreground">
+      <div className="fixed end-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
+      <section className="glass-card w-full max-w-xl p-7">
         <div className="flex items-start gap-4">
           <div className="h-12 w-12 rounded-xl border border-indigo-500/25 bg-indigo-500/15 flex items-center justify-center text-indigo-300 shrink-0">
             <ShieldCheck className="h-6 w-6" />

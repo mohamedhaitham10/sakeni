@@ -3,6 +3,7 @@
 import { useState, useEffect, useRef } from "react";
 import { Building2, Eye, Users, DollarSign, Plus, Edit, Trash2, ChevronRight, TrendingUp, BarChart2, ImageIcon, X, Upload } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import { Modal } from "@/components/Modal";
 import { KYCModal, getAuth, setAuth, AuthUser } from "@/components/KYCModal";
 import { ChatPanel } from "@/components/ChatPanel";
@@ -335,12 +336,13 @@ export default function LandlordPage() {
 
       {/* ── Header ── */}
       <header className="glass fixed top-0 w-full left-0 z-40 px-5 py-3.5 flex justify-between items-center">
-        <h1 className="text-xl font-bold tracking-tighter">
+        <h1 className="min-w-0 truncate text-xl font-bold tracking-tighter">
           <span className="text-gradient">{t.brand}</span>{" "}
           <span className="text-white/60 text-base font-normal">{t.landlord}</span>
         </h1>
-        <div className="flex items-center gap-2">
+        <div className="flex shrink-0 items-center gap-2">
           <LanguageSwitcher currentLocale={locale}/>
+          <ThemeToggle />
           {authUser && (
             <button
               onClick={handleSignOut}

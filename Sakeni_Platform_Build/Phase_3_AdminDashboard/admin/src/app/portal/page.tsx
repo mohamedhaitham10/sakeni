@@ -10,6 +10,7 @@ import {
   UserCheck,
 } from "lucide-react";
 import { AuthUser, getAuth } from "@/components/KYCModal";
+import { ThemeToggle } from "@/components/ThemeToggle";
 import LandlordPage from "../landlord/page";
 import StudentPage from "../student/page";
 
@@ -27,7 +28,10 @@ function RejectedState({
   const Icon = role === "student" ? GraduationCap : Home;
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 text-foreground">
+    <div className="relative flex min-h-screen items-center justify-center p-4 text-foreground">
+      <div className="fixed end-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
       <div className="glass-card max-w-md space-y-5 p-8 text-center">
         <div className="mx-auto flex h-16 w-16 items-center justify-center border border-rose-500/30 bg-rose-500/10 text-rose-400">
           <Icon className="h-8 w-8" strokeWidth={1.5} />
@@ -117,7 +121,10 @@ export default function UnifiedPortal() {
   }
 
   return (
-    <div className="flex min-h-screen items-center justify-center p-4 text-foreground">
+    <div className="relative flex min-h-screen items-center justify-center p-4 text-foreground">
+      <div className="fixed end-4 top-4 z-50">
+        <ThemeToggle />
+      </div>
       <main className="w-full max-w-4xl space-y-8">
         <section className="space-y-4 text-center">
           <div className="inline-flex items-center gap-2 border border-white/10 bg-white/5 px-3 py-1 text-xs font-semibold uppercase text-indigo-400">

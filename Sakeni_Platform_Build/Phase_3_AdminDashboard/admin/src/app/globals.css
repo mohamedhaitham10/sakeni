@@ -4,6 +4,7 @@
 
 @layer base {
   :root {
+    color-scheme: light;
     --color-bg: #f2f2f3;
     --color-surface: #e9e9ea;
     --color-text: #1d1f20;
@@ -45,12 +46,53 @@
     --radius: 0.25rem;
   }
 
+  :root[data-theme="dark"],
+  :root.dark {
+    color-scheme: dark;
+    --color-bg: #101112;
+    --color-surface: #181a1c;
+    --color-text: #f3f0e8;
+    --color-accent: #86abc9;
+    --color-accent-2: #c3a66b;
+    --color-divider: color-mix(in srgb, #f3f0e8 18%, transparent);
+
+    --color-neutral-100: #f6f3ec;
+    --color-neutral-200: #e1ddd4;
+    --color-neutral-300: #c4beb4;
+    --color-neutral-400: #9f9990;
+    --color-neutral-500: #78746d;
+    --color-neutral-600: #5b5854;
+    --color-neutral-700: #403f3d;
+    --color-neutral-800: #252628;
+    --color-neutral-900: #070809;
+
+    --color-accent-100: #152331;
+    --color-accent-200: #1d3448;
+    --color-accent-300: #2a4a63;
+    --color-accent-400: #406782;
+    --color-accent-500: #5f8dae;
+    --color-accent-600: #86abc9;
+    --color-accent-700: #a5c6dd;
+    --color-accent-800: #c1d9ea;
+    --color-accent-900: #e3f0f8;
+
+    --background: 220 6% 7%;
+    --foreground: 42 20% 93%;
+    --muted: 220 6% 13%;
+    --muted-foreground: 42 10% 68%;
+    --border: 220 6% 25%;
+    --primary: 205 38% 66%;
+    --primary-foreground: 220 6% 7%;
+  }
+
   * {
     border-color: hsl(var(--border));
   }
 
   body {
     @apply bg-background text-foreground;
+    background-color: var(--color-bg);
+    color: var(--color-text);
     background-image:
       linear-gradient(color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px),
       linear-gradient(90deg, color-mix(in srgb, var(--color-text) 5%, transparent) 1px, transparent 1px);
@@ -59,6 +101,7 @@
     -webkit-font-smoothing: antialiased;
     font-feature-settings: "rlig" 1, "calt" 1;
     font-family: var(--font-body);
+    transition: background-color 180ms ease, color 180ms ease;
   }
 
   h1,
@@ -125,6 +168,14 @@
       linear-gradient(var(--color-text), var(--color-text)) bottom right / 10px 1px no-repeat,
       linear-gradient(var(--color-text), var(--color-text)) bottom right / 1px 10px no-repeat;
     mix-blend-mode: multiply;
+  }
+
+  :root[data-theme="dark"] .glass-card::before,
+  :root[data-theme="dark"] .glass-card::after,
+  :root.dark .glass-card::before,
+  :root.dark .glass-card::after {
+    opacity: 0.32;
+    mix-blend-mode: screen;
   }
 
   .glass-card > * {
