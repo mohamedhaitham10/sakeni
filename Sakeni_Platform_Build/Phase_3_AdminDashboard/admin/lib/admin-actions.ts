@@ -32,7 +32,10 @@ export async function approveListing(listingId: string, adminId: string) {
     */
   }
   
-  revalidatePath("/listings");
+  revalidatePath("/");
+  revalidatePath("/student");
+  revalidatePath("/landlord");
+  revalidatePath("/portal");
 }
 export async function rejectListing(listingId: string, adminId: string, reason: string) {
   const supabase = await createClient();
@@ -40,5 +43,8 @@ export async function rejectListing(listingId: string, adminId: string, reason: 
   const { error } = await supabase.from("listings").update({ status: "rejected", flagged_reason: reason, admin_notes: `Rejected by ${adminId}` }).eq("id", listingId);
   if (error) throw new Error("Failed to update listing: " + error.message);
   
-  revalidatePath("/listings");
+  revalidatePath("/");
+  revalidatePath("/student");
+  revalidatePath("/landlord");
+  revalidatePath("/portal");
 }

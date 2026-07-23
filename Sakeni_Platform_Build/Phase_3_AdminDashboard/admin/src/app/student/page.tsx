@@ -535,7 +535,7 @@ export default function StudentPage() {
         )}
 
         {/* ── Tab nav ── */}
-        <div className="flex gap-0.5 border-b border-white/8">
+        <div className="flex max-w-full gap-0.5 overflow-x-auto border-b border-white/8 pb-px">
           {([
             ["featured",     `${t.tabFeatured}`],
             ["all",          `${t.tabAll} (${listingsList.length})`],

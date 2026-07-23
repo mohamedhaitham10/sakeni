@@ -1,10 +1,11 @@
 ﻿import type { Metadata } from "next";
-import { Inter, Cairo } from "next/font/google";
+import { Barlow, Barlow_Condensed, Cairo } from "next/font/google";
 import { cookies } from "next/headers";
 import "./globals.css";
 import type { Locale } from "@/lib/i18n";
 
-const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
+const barlow = Barlow({ subsets: ["latin"], weight: ["400", "500", "700"], variable: "--font-barlow" });
+const barlowCondensed = Barlow_Condensed({ subsets: ["latin"], weight: ["400", "600"], variable: "--font-barlow-condensed" });
 const cairo = Cairo({ subsets: ["arabic", "latin"], variable: "--font-cairo" });
 
 export const metadata: Metadata = {
@@ -22,10 +23,10 @@ export default async function RootLayout({
   const dir = locale === "ar" ? "rtl" : "ltr";
 
   return (
-    <html lang={locale} dir={dir} className="dark">
+    <html lang={locale} dir={dir}>
       <body
-        className={`${inter.variable} ${cairo.variable} ${
-          locale === "ar" ? "font-cairo" : "font-inter"
+        className={`${barlow.variable} ${barlowCondensed.variable} ${cairo.variable} ${
+          locale === "ar" ? "font-cairo" : "font-barlow"
         }`}
       >
         {children}

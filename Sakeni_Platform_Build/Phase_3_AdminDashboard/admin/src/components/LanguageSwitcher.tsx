@@ -8,13 +8,13 @@ export function LanguageSwitcher({ currentLocale }: { currentLocale: string }) {
   };
 
   return (
-    <div className="flex items-center gap-1 bg-white/5 rounded-lg p-1 border border-white/10">
+    <div className="inline-flex items-center overflow-hidden border border-white/10 bg-white/5 p-1">
       <button
         onClick={() => switchLocale("en")}
-        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+        className={`px-3 py-1 text-sm font-semibold transition-colors ${
           currentLocale === "en"
-            ? "bg-indigo-600 text-white shadow"
-            : "text-muted-foreground hover:text-white"
+            ? "bg-indigo-600 text-white"
+            : "text-muted-foreground hover:text-white hover:bg-white/5"
         }`}
         aria-label="Switch to English"
       >
@@ -22,10 +22,10 @@ export function LanguageSwitcher({ currentLocale }: { currentLocale: string }) {
       </button>
       <button
         onClick={() => switchLocale("ar")}
-        className={`px-3 py-1 rounded text-sm font-medium transition-colors ${
+        className={`px-3 py-1 text-sm font-semibold transition-colors ${
           currentLocale === "ar"
-            ? "bg-indigo-600 text-white shadow"
-            : "text-muted-foreground hover:text-white"
+            ? "bg-indigo-600 text-white"
+            : "text-muted-foreground hover:text-white hover:bg-white/5"
         }`}
         aria-label="Switch to Arabic"
       >

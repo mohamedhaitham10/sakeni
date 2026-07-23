@@ -22,7 +22,9 @@ const config: Config = {
         },
       },
       fontFamily: {
-        inter: ["var(--font-inter)", "sans-serif"],
+        inter: ["var(--font-barlow)", "sans-serif"],
+        barlow: ["var(--font-barlow)", "sans-serif"],
+        heading: ["var(--font-barlow-condensed)", "sans-serif"],
         cairo: ["var(--font-cairo)", "sans-serif"],
       },
     },
