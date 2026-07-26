@@ -18,6 +18,7 @@ import { AuthUser, clearAuth, getAuth, type AuthRole } from "@/components/KYCMod
 import { ThemeToggle } from "@/components/ThemeToggle";
 
 type AccountRole = AuthRole | "admin";
+type JsonRecord = Record<string, unknown>;
 
 interface ListingRecord {
   id: number | string;
@@ -39,6 +40,34 @@ interface ApplicationRecord {
   landlordEmail?: string;
 }
 
+function asRecord(value: unknown): JsonRecord | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as JsonRecord : null;
+}
+
+function safeString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function safeNumber(value: unknown) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : 0;
+}
+
+function optionalString(value: unknown) {
+  const text = safeString(value).trim();
+  return text || undefined;
+}
+
+function safeId(value: unknown, fallback: string) {
+  if (typeof value === "number" && Number.isFinite(value)) return value;
+  if (typeof value === "string" && value.trim()) return value;
+  return fallback;
+}
+
+function safeKycStatus(value: unknown): AuthUser["kycStatus"] {
+  return value === "verified" || value === "rejected" || value === "pending" ? value : "pending";
+}
+
 function readJson<T>(key: string, fallback: T): T {
   if (typeof window === "undefined") return fallback;
 
@@ -48,6 +77,17 @@ function readJson<T>(key: string, fallback: T): T {
   } catch {
     return fallback;
   }
+}
+
+function readArray<T>(key: string, normalize: (value: unknown, index: number) => T | null): T[] {
+  const raw = readJson<unknown>(key, []);
+  if (!Array.isArray(raw)) return [];
+  return raw.map(normalize).filter((item): item is T => item !== null);
+}
+
+function readArrayLength(key: string) {
+  const raw = readJson<unknown>(key, []);
+  return Array.isArray(raw) ? raw.length : 0;
 }
 
 function initials(name: string) {
@@ -68,6 +108,76 @@ function statusClasses(status: string) {
     return "border-rose-500/30 bg-rose-500/10 text-rose-400";
   }
   return "border-amber-500/30 bg-amber-500/10 text-amber-400";
+}
+
+function normalizeUser(value: unknown, role: AuthRole): AuthUser | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const name = safeString(record.name).trim() || (role === "student" ? "Sakeni Student" : "Sakeni Landlord");
+  return {
+    name,
+    email: safeString(record.email),
+    phone: safeString(record.phone),
+    role,
+    university: optionalString(record.university),
+    studentId: optionalString(record.studentId),
+    year: optionalString(record.year),
+    city: optionalString(record.city),
+    propertyType: optionalString(record.propertyType),
+    nationalId: safeString(record.nationalId),
+    governmentIdType:
+      record.governmentIdType === "egyptian_national_id" ||
+      record.governmentIdType === "passport" ||
+      record.governmentIdType === "residence_permit"
+        ? record.governmentIdType
+        : undefined,
+    governmentIdUrl: optionalString(record.governmentIdUrl),
+    selfieUrl: optionalString(record.selfieUrl),
+    faceMatchScore: Number.isFinite(Number(record.faceMatchScore)) ? Number(record.faceMatchScore) : undefined,
+    faceMatchStatus:
+      record.faceMatchStatus === "verified" ||
+      record.faceMatchStatus === "pending" ||
+      record.faceMatchStatus === "rejected"
+        ? record.faceMatchStatus
+        : undefined,
+    kycStatus: safeKycStatus(record.kycStatus),
+    avatar: safeString(record.avatar) || initials(name),
+    birthdate: optionalString(record.birthdate),
+    gender: optionalString(record.gender),
+    governorate: optionalString(record.governorate),
+    passwordVerifier: optionalString(record.passwordVerifier),
+  };
+}
+
+function normalizeListing(value: unknown, index: number): ListingRecord | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  return {
+    id: safeId(record.id, `listing-${index}`),
+    name: optionalString(record.name),
+    price: safeNumber(record.price),
+    status: optionalString(record.status) ?? "pending",
+    views: safeNumber(record.views),
+    landlordName: optionalString(record.landlordName),
+    landlordEmail: optionalString(record.landlordEmail),
+  };
+}
+
+function normalizeApplication(value: unknown, index: number): ApplicationRecord | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  return {
+    id: safeId(record.id, `application-${index}`),
+    listingId: typeof record.listingId === "number" || typeof record.listingId === "string" ? record.listingId : undefined,
+    status: optionalString(record.status) ?? "pending",
+    name: optionalString(record.name),
+    email: optionalString(record.email),
+    landlordName: optionalString(record.landlordName),
+    landlordEmail: optionalString(record.landlordEmail),
+  };
 }
 
 function DetailRow({ label, value }: { label: string; value: string }) {
@@ -158,14 +268,18 @@ export function AccountProfilePage({ role }: { role: AccountRole }) {
   const [savedCount, setSavedCount] = useState(0);
   const [applications, setApplications] = useState<ApplicationRecord[]>([]);
   const [listings, setListings] = useState<ListingRecord[]>([]);
+  const [studentAccountCount, setStudentAccountCount] = useState(0);
+  const [landlordAccountCount, setLandlordAccountCount] = useState(0);
 
   useEffect(() => {
-    if (role !== "admin") {
-      setUser(getAuth(role) ?? defaultUser(role));
+    if (role === "student" || role === "landlord") {
+      setUser(normalizeUser(getAuth(role), role) ?? defaultUser(role));
     }
-    setSavedCount(readJson<number[]>("sk_saved", []).length);
-    setApplications(readJson<ApplicationRecord[]>("sk_ll_applicants", []));
-    setListings(readJson<ListingRecord[]>("sk_ll_listings", []));
+    setSavedCount(readArrayLength("sk_saved"));
+    setApplications(readArray("sk_ll_applicants", normalizeApplication));
+    setListings(readArray("sk_ll_listings", normalizeListing));
+    setStudentAccountCount(readArrayLength("sk_accounts_student"));
+    setLandlordAccountCount(readArrayLength("sk_accounts_landlord"));
     setMounted(true);
   }, [role]);
 
@@ -178,7 +292,7 @@ export function AccountProfilePage({ role }: { role: AccountRole }) {
       phone: source?.phone ?? "",
       roleLabel: role === "student" ? "Student" : "Landlord",
       status: source?.kycStatus ?? "pending",
-      avatar: source?.selfieUrl || source?.avatar || initials(source?.name ?? ""),
+      avatar: safeString(source?.selfieUrl) || safeString(source?.avatar) || initials(safeString(source?.name)),
       source,
     };
   }, [role, user]);
@@ -225,8 +339,8 @@ export function AccountProfilePage({ role }: { role: AccountRole }) {
           { label: "Monthly revenue", value: `EGP ${roleListings.filter(listing => listing.status === "active").reduce((sum, listing) => sum + Number(listing.price || 0), 0).toLocaleString()}`, icon: BadgeCheck },
         ]
       : [
-          { label: "Students", value: String(readJson<AuthUser[]>("sk_accounts_student", []).length), icon: GraduationCap },
-          { label: "Landlords", value: String(readJson<AuthUser[]>("sk_accounts_landlord", []).length), icon: Home },
+          { label: "Students", value: String(studentAccountCount), icon: GraduationCap },
+          { label: "Landlords", value: String(landlordAccountCount), icon: Home },
           { label: "Listings", value: String(listings.length), icon: Building2 },
         ];
 

@@ -134,6 +134,56 @@ const AR: typeof EN = {
 };
 
 const BLANK_FORM = { name:"", phone:"", university:"", moveIn:"", lease:"12 months", message:"" };
+const FALLBACK_PHOTO = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop";
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function safeText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function safeNumber(value: unknown, fallback = 0) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function safeAppStatus(value: unknown): AppStatus {
+  return value === "approved" || value === "declined" || value === "pending" ? value : "pending";
+}
+
+function parseSavedIds(value: unknown) {
+  if (!Array.isArray(value)) return new Set<number>();
+  return new Set(value.map(id => Number(id)).filter(Number.isFinite));
+}
+
+function parseApplications(value: unknown): Application[] {
+  if (!Array.isArray(value)) return [];
+  return value.flatMap((item, index) => {
+    const record = asRecord(item);
+    if (!record) return [];
+
+    return [{
+      id: safeNumber(record.id, index + 1),
+      listingId: safeNumber(record.listingId),
+      status: safeAppStatus(record.status),
+      date: safeText(record.date, new Date().toISOString().slice(0, 10)),
+      message: safeText(record.message),
+      name: safeText(record.name, "Student applicant"),
+      university: safeText(record.university, "Cairo University"),
+      phone: safeText(record.phone),
+      lease: safeText(record.lease, "12 months"),
+      moveIn: safeText(record.moveIn, new Date().toISOString().slice(0, 10)),
+      avatar: safeText(record.avatar) || undefined,
+      email: safeText(record.email) || undefined,
+      studentId: safeText(record.studentId) || undefined,
+      year: safeText(record.year) || undefined,
+      landlordName: safeText(record.landlordName) || undefined,
+      landlordEmail: safeText(record.landlordEmail) || undefined,
+    }];
+  });
+}
 
 export default function StudentPage() {
   const [locale, setLocale] = useState<Locale>("en");
@@ -186,22 +236,26 @@ export default function StudentPage() {
           landlordName?: string;
           landlordEmail?: string;
         }
-        const parsed = (JSON.parse(ls) as LLListing[]).filter(l => l.status === "active");
-        const fallbackPhoto = "https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&h=200&fit=crop";
-        const formatted: Listing[] = parsed.map((l: LLListing) => {
-          const photos = Array.isArray(l.photos) ? l.photos.filter(Boolean) : [];
+        const storedListings = JSON.parse(ls);
+        const parsed = (Array.isArray(storedListings) ? storedListings : []).filter((l: unknown): l is LLListing => asRecord(l)?.status === "active");
+        const fallbackPhoto = FALLBACK_PHOTO;
+        const formatted: Listing[] = parsed.map((l: LLListing, index) => {
+          const record = asRecord(l) ?? {};
+          const name = safeText(record.name, `Listing ${index + 1}`);
+          const city = safeText(record.city, "Cairo");
+          const photos = Array.isArray(record.photos) ? record.photos.filter((photo): photo is string => typeof photo === "string" && photo.trim().length > 0) : [];
           return {
-            id: l.id,
-            name: { en: l.name, ar: l.name },
+            id: safeNumber(record.id, index + 1),
+            name: { en: name, ar: name },
             loc: { en: `${l.city}, ${l.district}`, ar: `${l.city === "Cairo" ? "القاهرة" : "الجيزة"}، ${l.district}` },
-            city: l.city,
+            city,
             nearUniversity: "Cairo University",
-            price: l.price,
-            deposit: l.price,
-            beds: l.beds,
-            baths: l.baths,
-            sqft: l.sqft,
-            floorNumber: Number.isFinite(Number(l.floorNumber)) ? Number(l.floorNumber) : 0,
+            price: safeNumber(record.price),
+            deposit: safeNumber(record.price),
+            beds: safeNumber(record.beds, 1),
+            baths: safeNumber(record.baths, 1),
+            sqft: safeNumber(record.sqft),
+            floorNumber: safeNumber(record.floorNumber),
             furnished: true,
             utilities: false,
             gender: "any",
@@ -209,8 +263,8 @@ export default function StudentPage() {
             accent: "indigo",
             photo: photos[0] || fallbackPhoto,
             photos: photos.length ? photos : [fallbackPhoto],
-            landlordName: l.landlordName,
-            landlordEmail: l.landlordEmail,
+            landlordName: safeText(record.landlordName) || undefined,
+            landlordEmail: safeText(record.landlordEmail) || undefined,
           };
         });
         setListingsList(formatted);
@@ -225,9 +279,9 @@ export default function StudentPage() {
   useEffect(() => {
     try {
       const s = localStorage.getItem("sk_saved");
-      if (s) setSaved(new Set(JSON.parse(s)));
+      if (s) setSaved(parseSavedIds(JSON.parse(s)));
       const a = localStorage.getItem("sk_ll_applicants");
-      if (a) setApps(JSON.parse(a));
+      if (a) setApps(parseApplications(JSON.parse(a)));
     } catch { /* ignore */ }
   }, []);
 
@@ -370,8 +424,11 @@ export default function StudentPage() {
               {t.signOut}
             </button>
           )}
-          <Link href="/student/account" aria-label={t.myProfile} className="h-9 w-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-500/40 hover:scale-105 transition-transform">
-            {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "ST"}
+          <Link href="/student/account" aria-label={t.myProfile} className="inline-flex h-9 items-center gap-2 rounded-full border border-emerald-500/30 bg-emerald-500/10 pl-1 pr-3 text-sm font-semibold text-emerald-100 shadow-lg ring-1 ring-emerald-500/30 transition-all hover:bg-emerald-500/20">
+            <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 text-xs font-bold text-white">
+              {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "ST"}
+            </span>
+            <span className="hidden sm:inline">{t.myProfile}</span>
           </Link>
         </div>
       </header>

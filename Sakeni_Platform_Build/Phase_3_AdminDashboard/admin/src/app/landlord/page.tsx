@@ -134,6 +134,85 @@ const EMPTY_FORM = {
   description:"", status:"pending_review" as Status, photosRaw:"",
 };
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function safeText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function safeNumber(value: unknown, fallback = 0) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function safeListingStatus(value: unknown): Status {
+  if (value === "active") return "active";
+  if (value === "rejected") return "rejected";
+  return "pending_review";
+}
+
+function safeApplicationStatus(value: unknown): AppStatus {
+  return value === "approved" || value === "declined" || value === "pending" ? value : "pending";
+}
+
+function parseStoredListings(value: unknown): Listing[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    const record = asRecord(item);
+    if (!record) return [];
+
+    return [{
+      id: safeNumber(record.id, index + 1),
+      name: safeText(record.name, `Listing ${index + 1}`),
+      city: safeText(record.city, "Cairo"),
+      district: safeText(record.district),
+      price: safeNumber(record.price),
+      sqft: safeNumber(record.sqft),
+      floorNumber: safeNumber(record.floorNumber),
+      beds: safeNumber(record.beds, 1),
+      baths: safeNumber(record.baths, 1),
+      description: safeText(record.description),
+      views: safeNumber(record.views),
+      applicants: safeNumber(record.applicants),
+      status: safeListingStatus(record.status),
+      photos: Array.isArray(record.photos) ? record.photos.filter((photo): photo is string => typeof photo === "string" && isSupportedPhotoUrl(photo)).slice(0, 15) : [],
+      landlordName: safeText(record.landlordName) || undefined,
+      landlordEmail: safeText(record.landlordEmail) || undefined,
+    }];
+  });
+}
+
+function parseStoredApplicants(value: unknown): Applicant[] {
+  if (!Array.isArray(value)) return [];
+
+  return value.flatMap((item, index) => {
+    const record = asRecord(item);
+    if (!record) return [];
+
+    return [{
+      id: safeNumber(record.id, index + 1),
+      listingId: safeNumber(record.listingId),
+      name: safeText(record.name, "Student applicant"),
+      university: safeText(record.university, "Cairo University"),
+      phone: safeText(record.phone),
+      moveIn: safeText(record.moveIn, new Date().toISOString().slice(0, 10)),
+      lease: safeText(record.lease, "12 months"),
+      message: safeText(record.message),
+      status: safeApplicationStatus(record.status),
+      avatar: safeText(record.avatar) || undefined,
+      email: safeText(record.email) || undefined,
+      studentId: safeText(record.studentId) || undefined,
+      year: safeText(record.year) || undefined,
+      submittedAt: safeText(record.submittedAt) || undefined,
+      landlordName: safeText(record.landlordName) || undefined,
+      landlordEmail: safeText(record.landlordEmail) || undefined,
+    }];
+  });
+}
+
 export default function LandlordPage() {
   const [locale,     setLocale]     = useState<Locale>("en");
   const [tab,        setTab]        = useState<Tab>("listings");
@@ -161,17 +240,10 @@ export default function LandlordPage() {
     try {
       const ls = localStorage.getItem("sk_ll_listings");
       if (ls) {
-        setListings((JSON.parse(ls) as Listing[]).map(listing => ({
-          ...listing,
-          status: listing.status === "active" ? "active" : listing.status === "rejected" ? "rejected" : "pending_review",
-          floorNumber: Number.isFinite(Number(listing.floorNumber)) ? Number(listing.floorNumber) : 0,
-          photos: Array.isArray(listing.photos) ? listing.photos.filter(isSupportedPhotoUrl).slice(0, 15) : [],
-          landlordName: listing.landlordName,
-          landlordEmail: listing.landlordEmail,
-        })));
+        setListings(parseStoredListings(JSON.parse(ls)));
       }
       const as_ = localStorage.getItem("sk_ll_applicants");
-      if (as_) setApplicants(JSON.parse(as_));
+      if (as_) setApplicants(parseStoredApplicants(JSON.parse(as_)));
     } catch { /* ignore */ }
   }, []);
 
@@ -355,9 +427,12 @@ export default function LandlordPage() {
           <Link
             href="/landlord/account"
             aria-label={t.myProfile}
-            className="h-9 w-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-amber-500/40 cursor-pointer hover:scale-105 transition-transform"
+            className="inline-flex h-9 items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/10 pl-1 pr-3 text-sm font-semibold text-amber-100 shadow-lg ring-1 ring-amber-500/30 transition-all hover:bg-amber-500/20"
           >
-            {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "LL"}
+            <span className="flex h-7 w-7 items-center justify-center overflow-hidden rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 text-xs font-bold text-white">
+              {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "LL"}
+            </span>
+            <span className="hidden sm:inline">{t.myProfile}</span>
           </Link>
         </div>
       </header>

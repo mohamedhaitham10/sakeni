@@ -37,6 +37,78 @@ const STORAGE_KEY = (role: AuthRole) => `sk_auth_${role}`;
 const ACCOUNTS_KEY = (role: AuthRole) => `sk_accounts_${role}`;
 const MAX_STORED_IMAGE_CHARS = 450_000;
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function safeString(value: unknown) {
+  return typeof value === "string" ? value : "";
+}
+
+function optionalString(value: unknown) {
+  const text = safeString(value).trim();
+  return text || undefined;
+}
+
+function safeKycStatus(value: unknown): AuthUser["kycStatus"] {
+  return value === "verified" || value === "pending" || value === "rejected" ? value : "pending";
+}
+
+function safeFaceMatchStatus(value: unknown): AuthUser["faceMatchStatus"] {
+  return value === "verified" || value === "pending" || value === "rejected" ? value : undefined;
+}
+
+function safeGovernmentIdType(value: unknown): AuthUser["governmentIdType"] {
+  return value === "egyptian_national_id" || value === "passport" || value === "residence_permit" ? value : undefined;
+}
+
+function fallbackName(role: AuthRole) {
+  return role === "student" ? "Student User" : "Landlord User";
+}
+
+function fallbackAvatar(name: string) {
+  return name
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map(part => part[0])
+    .join("")
+    .toUpperCase() || "SA";
+}
+
+function normalizeStoredUser(value: unknown, fallbackRole: AuthRole): AuthUser | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const role: AuthRole = record.role === "student" || record.role === "landlord" ? record.role : fallbackRole;
+  const name = optionalString(record.name) ?? fallbackName(role);
+  const faceMatchScore = Number(record.faceMatchScore);
+
+  return {
+    name,
+    email: safeString(record.email),
+    phone: safeString(record.phone),
+    role,
+    university: optionalString(record.university),
+    studentId: optionalString(record.studentId),
+    year: optionalString(record.year),
+    city: optionalString(record.city),
+    propertyType: optionalString(record.propertyType),
+    nationalId: safeString(record.nationalId),
+    governmentIdType: safeGovernmentIdType(record.governmentIdType),
+    governmentIdUrl: optionalString(record.governmentIdUrl),
+    selfieUrl: optionalString(record.selfieUrl),
+    faceMatchScore: Number.isFinite(faceMatchScore) ? faceMatchScore : undefined,
+    faceMatchStatus: safeFaceMatchStatus(record.faceMatchStatus),
+    kycStatus: safeKycStatus(record.kycStatus),
+    avatar: optionalString(record.avatar) ?? fallbackAvatar(name),
+    birthdate: optionalString(record.birthdate),
+    gender: optionalString(record.gender),
+    governorate: optionalString(record.governorate),
+    passwordVerifier: optionalString(record.passwordVerifier),
+  };
+}
+
 function compactUserForStorage(user: AuthUser): AuthUser {
   return {
     ...user,
@@ -57,7 +129,11 @@ function saveJson(key: string, value: unknown) {
 function getAccounts(role: AuthRole): AuthUser[] {
   try {
     const s = localStorage.getItem(ACCOUNTS_KEY(role));
-    return s ? JSON.parse(s) : [];
+    const parsed = s ? JSON.parse(s) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed
+      .map(account => normalizeStoredUser(account, role))
+      .filter((account): account is AuthUser => account !== null);
   } catch { return []; }
 }
 
@@ -79,7 +155,7 @@ export function getStoredAccount(role: AuthRole, email: string): AuthUser | null
 export function getAuth(role: AuthRole): AuthUser | null {
   try {
     const s = localStorage.getItem(STORAGE_KEY(role));
-    return s ? JSON.parse(s) : null;
+    return s ? normalizeStoredUser(JSON.parse(s), role) : null;
   } catch { return null; }
 }
 

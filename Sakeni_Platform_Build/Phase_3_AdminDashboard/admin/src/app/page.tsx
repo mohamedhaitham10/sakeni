@@ -370,8 +370,11 @@ export default function AdminPage() {
         <div className="flex shrink-0 items-center gap-2">
           <LanguageSwitcher currentLocale={locale}/>
           <ThemeToggle />
-          <Link href="/admin/account" aria-label="Admin account" className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-indigo-500/40 cursor-pointer hover:scale-105 transition-transform">
-            SA
+          <Link href="/admin/account" aria-label="Admin account" className="inline-flex h-9 items-center gap-2 rounded-full border border-indigo-500/30 bg-indigo-500/10 pl-1 pr-3 text-sm font-semibold text-indigo-100 shadow-lg ring-1 ring-indigo-500/30 transition-all hover:bg-indigo-500/20">
+            <span className="flex h-7 w-7 items-center justify-center rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 text-xs font-bold text-white">
+              SA
+            </span>
+            <span className="hidden sm:inline">Account</span>
           </Link>
         </div>
       </header>
