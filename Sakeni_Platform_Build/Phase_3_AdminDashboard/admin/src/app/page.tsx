@@ -108,6 +108,41 @@ interface AdminListing {
 }
 
 /* ─── Page ──────────────────────────────────────────────── */
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function safeText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function safeUserStatus(value: unknown): PlatformUser["status"] {
+  return value === "verified" || value === "rejected" || value === "pending" ? value : "pending";
+}
+
+function safeRole(value: unknown, fallback: "student" | "landlord"): "student" | "landlord" {
+  return value === "student" || value === "landlord" ? value : fallback;
+}
+
+function readJsonArray(key: string): unknown[] {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+function readJsonRecord(raw: unknown): Record<string, unknown> | null {
+  try {
+    return asRecord(typeof raw === "string" ? JSON.parse(raw) : raw);
+  } catch {
+    return null;
+  }
+}
+
 export default function AdminPage() {
   const [locale, setLocale] = useState<Locale>("en");
   const [modal,  setModal]  = useState<{title:string; body:React.ReactNode}|null>(null);
@@ -179,42 +214,56 @@ export default function AdminPage() {
       { id: "3", name: "Khaled Omar", type: "student", city: "Cairo", joined: "1 day ago", status: "verified", email: "khaled.omar@sakeni.eg", nationalId: "29808080109012", birthdate: "1998-08-08", gender: "Male", governorate: "Cairo" },
     ];
 
-    const savedStatic = localStorage.getItem("sk_admin_users");
-    let currentUsers = savedStatic ? JSON.parse(savedStatic) : initialSignups;
+    const savedStatic = readJsonArray("sk_admin_users")
+      .map((value, index): PlatformUser | null => {
+        const record = asRecord(value);
+        if (!record) return null;
+
+        return {
+          id: safeText(record.id, `saved_${index}`),
+          name: safeText(record.name, "Sakeni User"),
+          type: safeRole(record.type, "student"),
+          city: safeText(record.city, "Cairo"),
+          joined: safeText(record.joined, "Saved Account"),
+          status: safeUserStatus(record.status),
+          nationalId: safeText(record.nationalId) || undefined,
+          birthdate: safeText(record.birthdate) || undefined,
+          gender: safeText(record.gender) || undefined,
+          governorate: safeText(record.governorate) || undefined,
+          email: safeText(record.email) || undefined,
+          isDynamic: Boolean(record.isDynamic),
+          dynamicRole: record.dynamicRole === "student" || record.dynamicRole === "landlord" ? record.dynamicRole : undefined,
+        };
+      })
+      .filter((user): user is PlatformUser => user !== null);
+    let currentUsers: PlatformUser[] = savedStatic.length ? savedStatic : initialSignups;
 
     const readAuthRecords = (role: "student" | "landlord") => {
       const records: PlatformUser[] = [];
-      const savedAccounts = JSON.parse(localStorage.getItem(`sk_accounts_${role}`) || "[]") as unknown[];
+      const savedAccounts = readJsonArray(`sk_accounts_${role}`);
       const rawValues: unknown[] = [
         localStorage.getItem(`sk_auth_${role}`),
         ...savedAccounts,
       ].filter(Boolean);
 
       rawValues.forEach((raw, index) => {
-        const parsed = (typeof raw === "string" ? JSON.parse(raw) : raw) as {
-          name: string;
-          role: "student" | "landlord";
-          city?: string;
-          governorate?: string;
-          kycStatus: "verified" | "pending" | "rejected";
-          nationalId?: string;
-          birthdate?: string;
-          gender?: string;
-          email: string;
-        };
-        currentUsers = currentUsers.filter((u: PlatformUser) => u.email !== parsed.email);
+        const parsed = readJsonRecord(raw);
+        if (!parsed) return;
+
+        const email = safeText(parsed.email);
+        currentUsers = currentUsers.filter((u: PlatformUser) => !email || u.email !== email);
         records.push({
           id: `dynamic_${role}_${index}`,
-          name: parsed.name,
-          type: parsed.role,
-          city: parsed.city || parsed.governorate || "Cairo",
+          name: safeText(parsed.name, role === "student" ? "Student User" : "Landlord User"),
+          type: safeRole(parsed.role, role),
+          city: safeText(parsed.city) || safeText(parsed.governorate, "Cairo"),
           joined: index === 0 ? "Current Session" : "Saved Account",
-          status: parsed.kycStatus,
-          nationalId: parsed.nationalId,
-          birthdate: parsed.birthdate || (role === "student" ? "1999-01-01" : "1978-05-15"),
-          gender: parsed.gender || "Male",
-          governorate: parsed.governorate || "Cairo",
-          email: parsed.email,
+          status: safeUserStatus(parsed.kycStatus),
+          nationalId: safeText(parsed.nationalId) || undefined,
+          birthdate: safeText(parsed.birthdate, role === "student" ? "1999-01-01" : "1978-05-15"),
+          gender: safeText(parsed.gender, "Male"),
+          governorate: safeText(parsed.governorate, "Cairo"),
+          email,
           isDynamic: true,
           dynamicRole: role,
         });
@@ -234,21 +283,22 @@ export default function AdminPage() {
   const handleModerate = (userId: string, newStatus: "verified" | "rejected" | "pending") => {
     const updated = users.map(u => {
       if (u.id === userId) {
-        if (u.isDynamic) {
+        if (u.isDynamic && u.dynamicRole) {
           const authKey = `sk_auth_${u.dynamicRole}`;
           const currentAuth = localStorage.getItem(authKey);
           if (currentAuth) {
-            const parsed = JSON.parse(currentAuth);
-            if (parsed.email === u.email) {
+            const parsed = readJsonRecord(currentAuth);
+            if (parsed && parsed.email === u.email) {
               parsed.kycStatus = newStatus;
               localStorage.setItem(authKey, JSON.stringify(parsed));
             }
           }
           const accountsKey = `sk_accounts_${u.dynamicRole}`;
-          const accounts = JSON.parse(localStorage.getItem(accountsKey) || "[]");
-          localStorage.setItem(accountsKey, JSON.stringify(accounts.map((account: { email: string; kycStatus: string }) =>
-            account.email === u.email ? { ...account, kycStatus: newStatus } : account
-          )));
+          const accounts = readJsonArray(accountsKey);
+          localStorage.setItem(accountsKey, JSON.stringify(accounts.map(account => {
+            const record = asRecord(account);
+            return record?.email === u.email ? { ...record, kycStatus: newStatus } : account;
+          })));
         }
         return { ...u, status: newStatus };
       }

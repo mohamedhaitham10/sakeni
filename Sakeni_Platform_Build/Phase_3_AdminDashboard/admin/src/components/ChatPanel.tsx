@@ -40,6 +40,32 @@ interface ProfilePanel {
 const STORAGE = "sk_convs";
 const ts = () => new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
 
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null;
+}
+
+function safeText(value: unknown, fallback = "") {
+  return typeof value === "string" && value.trim() ? value : fallback;
+}
+
+function safeNumber(value: unknown, fallback = 0) {
+  const numberValue = Number(value);
+  return Number.isFinite(numberValue) ? numberValue : fallback;
+}
+
+function safeRole(value: unknown): ChatRole | "system" {
+  return value === "student" || value === "landlord" || value === "admin" || value === "system" ? value : "system";
+}
+
+function safeUnread(value: unknown): Record<ChatRole, number> {
+  const record = asRecord(value);
+  return {
+    student: safeNumber(record?.student),
+    landlord: safeNumber(record?.landlord),
+    admin: safeNumber(record?.admin),
+  };
+}
+
 const SYS: Msg = {
   id: 0, role: "system", name: "Sakeni (سكني)",
   text: "This chat is facilitated and monitored by Sakeni (سكني) for your safety.",
@@ -78,8 +104,56 @@ const SEED: Conv[] = [
   },
 ];
 
+function normalizeMsg(value: unknown, index: number): Msg | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const role = safeRole(record.role);
+  const text = safeText(record.text);
+  return {
+    id: safeNumber(record.id, index + 1),
+    role,
+    name: safeText(record.name, role === "system" ? "Sakeni" : "User"),
+    text: text || (role === "system" ? SYS.text : ""),
+    ts: safeText(record.ts),
+  };
+}
+
+function normalizeConv(value: unknown, index: number): Conv | null {
+  const record = asRecord(value);
+  if (!record) return null;
+
+  const messages = Array.isArray(record.messages)
+    ? record.messages.map(normalizeMsg).filter((msg): msg is Msg => msg !== null)
+    : [{ ...SYS, id: Date.now() + index }];
+
+  const listingName = safeText(record.listingName, `Conversation ${index + 1}`);
+  return {
+    id: safeNumber(record.id, index + 1),
+    listingId: safeNumber(record.listingId),
+    listingName,
+    studentName: safeText(record.studentName, "Student"),
+    landlordName: safeText(record.landlordName, "Landlord"),
+    messages,
+    lastMessage: safeText(record.lastMessage, messages.at(-1)?.text || "Conversation started"),
+    lastAt: safeText(record.lastAt, ts()),
+    unread: safeUnread(record.unread),
+  };
+}
+
+function normalizeConvs(value: unknown): Conv[] {
+  if (!Array.isArray(value)) return SEED;
+  const normalized = value.map(normalizeConv).filter((conv): conv is Conv => conv !== null);
+  return normalized.length ? normalized : SEED;
+}
+
 function loadConvs(): Conv[] {
-  try { const s = localStorage.getItem(STORAGE); return s ? JSON.parse(s) : SEED; } catch { return SEED; }
+  try {
+    const s = localStorage.getItem(STORAGE);
+    return s ? normalizeConvs(JSON.parse(s)) : SEED;
+  } catch {
+    return SEED;
+  }
 }
 function saveConvs(c: Conv[]) {
   try { localStorage.setItem(STORAGE, JSON.stringify(c)); } catch { /* ignore */ }
@@ -96,24 +170,33 @@ function readJson<T>(key: string, fallback: T): T {
 
 function buildProfilePanel(profileRole: "student" | "landlord", displayName: string): ProfilePanel {
   const session = readJson<Record<string, unknown> | null>(`sk_auth_${profileRole}`, null);
-  const accounts = readJson<Record<string, unknown>[]>(`sk_accounts_${profileRole}`, []);
-  const candidates = [session, ...accounts].filter(Boolean) as Record<string, unknown>[];
+  const accounts = readJson<unknown>(`sk_accounts_${profileRole}`, []);
+  const accountList = Array.isArray(accounts)
+    ? accounts.map(asRecord).filter((account): account is Record<string, unknown> => account !== null)
+    : [];
+  const candidates = [asRecord(session), ...accountList].filter((account): account is Record<string, unknown> => account !== null);
   const account = candidates.find(candidate =>
     String(candidate.name ?? "").toLowerCase() === displayName.toLowerCase()
   );
 
-  const listings = readJson<{ name: string; city: string; district: string; price: number; status: string }[]>("sk_ll_listings", []);
-  const applications = readJson<{ name: string; university: string; status: string; listingId: number; email?: string }[]>("sk_ll_applicants", []);
+  const listingsValue = readJson<unknown>("sk_ll_listings", []);
+  const applicationsValue = readJson<unknown>("sk_ll_applicants", []);
+  const listings = Array.isArray(listingsValue)
+    ? listingsValue.map(asRecord).filter((listing): listing is Record<string, unknown> => listing !== null)
+    : [];
+  const applications = Array.isArray(applicationsValue)
+    ? applicationsValue.map(asRecord).filter((application): application is Record<string, unknown> => application !== null)
+    : [];
 
   const posted = profileRole === "landlord"
     ? listings.map(l => ({
-      title: l.name,
+      title: safeText(l.name, "Listing"),
       meta: `${l.city}, ${l.district} · EGP ${Number(l.price || 0).toLocaleString()} · ${l.status}`,
     }))
     : applications
       .filter(a => a.name === displayName || (account?.email && a.email === account.email))
       .map(a => ({
-        title: `Application #${a.listingId}`,
+        title: `Application #${safeNumber(a.listingId)}`,
         meta: `${a.university} · ${a.status}`,
       }));
 
@@ -145,7 +228,7 @@ export function ChatPanel({ role, myName }: { role: ChatRole; myName: string }) 
   useEffect(() => {
     const c = loadConvs();
     setConvs(c);
-    if (!localStorage.getItem(STORAGE)) saveConvs(SEED);
+    saveConvs(c);
   }, []);
 
   useEffect(() => {
