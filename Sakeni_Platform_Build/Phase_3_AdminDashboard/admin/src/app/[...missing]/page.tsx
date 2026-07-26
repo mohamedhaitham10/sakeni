@@ -14,6 +14,8 @@ const ROUTE_ALIASES: Record<string, string> = {
   payment: "/",
   payments: "/",
   billing: "/",
+  account: "/account",
+  accounts: "/account",
   auth: FALLBACK_ROUTE,
   login: FALLBACK_ROUTE,
   signin: FALLBACK_ROUTE,
@@ -47,10 +49,12 @@ function resolveSafeRoute(segments?: string[]) {
   return ROUTE_ALIASES[firstSegment] ?? FALLBACK_ROUTE;
 }
 
-export default function MissingRouteRedirect({
+export default async function MissingRouteRedirect({
   params,
 }: {
-  params: { missing?: string[] };
+  params: Promise<{ missing?: string[] }>;
 }) {
-  redirect(resolveSafeRoute(params.missing));
+  const resolvedParams = await params;
+
+  redirect(resolveSafeRoute(resolvedParams.missing));
 }

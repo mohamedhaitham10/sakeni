@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useMemo, useRef } from "react";
+import Link from "next/link";
 import {
   Search, Heart, Home, BookOpen, Eye, Bed, Bath, Square,
   MapPin, SlidersHorizontal, X, ArrowUpDown, ChevronRight, ChevronLeft, MessageCircle,
@@ -369,9 +370,9 @@ export default function StudentPage() {
               {t.signOut}
             </button>
           )}
-          <button onClick={() => setProfileOpen(true)} className="h-9 w-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-500/40 hover:scale-105 transition-transform">
+          <Link href="/student/account" aria-label={t.myProfile} className="h-9 w-9 rounded-full bg-gradient-to-tr from-emerald-500 to-cyan-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-emerald-500/40 hover:scale-105 transition-transform">
             {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "ST"}
-          </button>
+          </Link>
         </div>
       </header>
 

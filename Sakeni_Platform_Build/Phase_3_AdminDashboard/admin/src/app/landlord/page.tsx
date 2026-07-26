@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { Building2, Eye, Users, DollarSign, Plus, Edit, Trash2, ChevronRight, TrendingUp, BarChart2, ImageIcon, X, Upload } from "lucide-react";
 import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
@@ -351,12 +352,13 @@ export default function LandlordPage() {
               {t.signOut}
             </button>
           )}
-          <button
-            onClick={() => setProfileOpen(true)}
+          <Link
+            href="/landlord/account"
+            aria-label={t.myProfile}
             className="h-9 w-9 rounded-full bg-gradient-to-tr from-amber-500 to-orange-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-amber-500/40 cursor-pointer hover:scale-105 transition-transform"
           >
             {authUser?.selfieUrl ? <img src={authUser.selfieUrl} alt="" className="h-full w-full rounded-full object-cover" /> : authUser?.avatar ?? "LL"}
-          </button>
+          </Link>
         </div>
       </header>
 

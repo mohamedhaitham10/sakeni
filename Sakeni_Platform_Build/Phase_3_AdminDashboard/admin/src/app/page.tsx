@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import {
   Activity, CreditCard, DollarSign, Users,
   TrendingUp, Shield, Globe, ArrowUp, Building2,
@@ -369,9 +370,9 @@ export default function AdminPage() {
         <div className="flex shrink-0 items-center gap-2">
           <LanguageSwitcher currentLocale={locale}/>
           <ThemeToggle />
-          <div className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-indigo-500/40 cursor-pointer hover:scale-105 transition-transform">
+          <Link href="/admin/account" aria-label="Admin account" className="h-9 w-9 rounded-full bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white font-bold text-sm shadow-lg ring-2 ring-indigo-500/40 cursor-pointer hover:scale-105 transition-transform">
             SA
-          </div>
+          </Link>
         </div>
       </header>
 
