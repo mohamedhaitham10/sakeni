@@ -10,6 +10,8 @@ import { LanguageSwitcher } from "@/components/LanguageSwitcher";
 import { ThemeToggle } from "@/components/ThemeToggle";
 import { Modal } from "@/components/Modal";
 import { ChatPanel } from "@/components/ChatPanel";
+import { UserProfileView } from "@/components/UserProfileView";
+import { buildPublicUserProfile } from "@/lib/public-profile";
 
 type Locale = "en" | "ar";
 
@@ -89,6 +91,13 @@ interface PlatformUser {
   gender?: string;
   governorate?: string;
   email?: string;
+  phone?: string;
+  avatar?: string;
+  selfieUrl?: string;
+  university?: string;
+  studentId?: string;
+  year?: string;
+  propertyType?: string;
   isDynamic?: boolean;
   dynamicRole?: "student" | "landlord";
 }
@@ -231,6 +240,13 @@ export default function AdminPage() {
           gender: safeText(record.gender) || undefined,
           governorate: safeText(record.governorate) || undefined,
           email: safeText(record.email) || undefined,
+          phone: safeText(record.phone) || undefined,
+          avatar: safeText(record.avatar) || undefined,
+          selfieUrl: safeText(record.selfieUrl) || undefined,
+          university: safeText(record.university) || undefined,
+          studentId: safeText(record.studentId) || undefined,
+          year: safeText(record.year) || undefined,
+          propertyType: safeText(record.propertyType) || undefined,
           isDynamic: Boolean(record.isDynamic),
           dynamicRole: record.dynamicRole === "student" || record.dynamicRole === "landlord" ? record.dynamicRole : undefined,
         };
@@ -264,6 +280,13 @@ export default function AdminPage() {
           gender: safeText(parsed.gender, "Male"),
           governorate: safeText(parsed.governorate, "Cairo"),
           email,
+          phone: safeText(parsed.phone) || undefined,
+          avatar: safeText(parsed.avatar) || undefined,
+          selfieUrl: safeText(parsed.selfieUrl) || undefined,
+          university: safeText(parsed.university) || undefined,
+          studentId: safeText(parsed.studentId) || undefined,
+          year: safeText(parsed.year) || undefined,
+          propertyType: safeText(parsed.propertyType) || undefined,
           isDynamic: true,
           dynamicRole: role,
         });
@@ -362,51 +385,52 @@ export default function AdminPage() {
     ),
   });
 
-  const openSignup = (u: PlatformUser) => setModal({
-    title: u.name,
-    body: (
-      <div className="text-sm space-y-4">
-        <div className="space-y-0.5">
-          <Field label={t.colType}   value={u.type === "student" ? t.student : t.landlord}/>
-          <Field label={t.colCity}   value={u.city}/>
-          <Field label={t.colJoined} value={u.joined}/>
-          <Field label={t.colStatus} value={u.status === "verified" ? t.verified : u.status === "rejected" ? "Rejected" : t.pending}/>
-          <Field label="Email"       value={u.email || `${u.name.split(" ")[0].toLowerCase()}@sakeni.eg`}/>
-          <Field label="National ID" value={u.nationalId || "N/A"}/>
-          <Field label="Birth Date"  value={u.birthdate || "N/A"}/>
-          <Field label="Gender"      value={u.gender || "N/A"}/>
-          <Field label="Governorate" value={u.governorate || "N/A"}/>
-        </div>
-        
-        <div className="flex gap-3 pt-2">
-          {u.status !== "verified" && (
-            <button
-              onClick={() => handleModerate(u.id, "verified")}
-              className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-xl font-semibold transition-all text-xs"
-            >
-              Approve KYC
-            </button>
-          )}
-          {u.status !== "rejected" && (
-            <button
-              onClick={() => handleModerate(u.id, "rejected")}
-              className="flex-1 bg-rose-600 hover:bg-rose-500 text-white py-2.5 rounded-xl font-semibold transition-all text-xs border border-rose-500/20"
-            >
-              Reject KYC
-            </button>
-          )}
-          {u.status !== "pending" && (
-            <button
-              onClick={() => handleModerate(u.id, "pending")}
-              className="flex-1 bg-white/6 hover:bg-white/10 text-white py-2.5 rounded-xl font-semibold transition-all text-xs border border-white/10"
-            >
-              Reset to Pending
-            </button>
-          )}
-        </div>
-      </div>
-    ),
-  });
+  const openSignup = (u: PlatformUser) => {
+    const role = u.type === "landlord" ? "landlord" : "student";
+    const profile = buildPublicUserProfile(role, { ...u, kycStatus: u.status }, u.name);
+
+    setModal({
+      title: `${u.name} Profile`,
+      body: (
+        <UserProfileView profile={profile}>
+          <section className="rounded-xl border border-white/10 bg-white/5 p-5 text-sm">
+            <h3 className="text-lg font-semibold">Admin Controls</h3>
+            <div className="mt-4">
+              <Field label={t.colJoined} value={u.joined}/>
+              <Field label={t.colStatus} value={u.status === "verified" ? t.verified : u.status === "rejected" ? "Rejected" : t.pending}/>
+            </div>
+
+            <div className="mt-5 flex gap-3">
+              {u.status !== "verified" && (
+                <button
+                  onClick={() => handleModerate(u.id, "verified")}
+                  className="flex-1 rounded-xl bg-emerald-600 py-2.5 text-xs font-semibold text-white transition-all hover:bg-emerald-500"
+                >
+                  Approve KYC
+                </button>
+              )}
+              {u.status !== "rejected" && (
+                <button
+                  onClick={() => handleModerate(u.id, "rejected")}
+                  className="flex-1 rounded-xl border border-rose-500/20 bg-rose-600 py-2.5 text-xs font-semibold text-white transition-all hover:bg-rose-500"
+                >
+                  Reject KYC
+                </button>
+              )}
+              {u.status !== "pending" && (
+                <button
+                  onClick={() => handleModerate(u.id, "pending")}
+                  className="flex-1 rounded-xl border border-white/10 bg-white/6 py-2.5 text-xs font-semibold text-white transition-all hover:bg-white/10"
+                >
+                  Reset to Pending
+                </button>
+              )}
+            </div>
+          </section>
+        </UserProfileView>
+      ),
+    });
+  };
 
   return (
     <div className="min-h-screen text-foreground">

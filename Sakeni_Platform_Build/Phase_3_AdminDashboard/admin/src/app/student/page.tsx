@@ -11,6 +11,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Modal } from "@/components/Modal";
 import { KYCModal, getAuth, setAuth, AuthUser } from "@/components/KYCModal";
 import { ChatPanel, openListingChat } from "@/components/ChatPanel";
+import { UserProfileView } from "@/components/UserProfileView";
+import { buildPublicUserProfile } from "@/lib/public-profile";
 import { CAIRO_GIZA_UNIVERSITIES } from "@/lib/cairo-giza-universities";
 
 type Locale = "en" | "ar";
@@ -201,6 +203,7 @@ export default function StudentPage() {
   const [sortKey, setSortKey] = useState<SortKey>("default");
   const [applyTarget, setApplyTarget] = useState<Listing | null>(null);
   const [viewTarget,  setViewTarget]  = useState<Listing | null>(null);
+  const [landlordProfileTarget, setLandlordProfileTarget] = useState<Listing | null>(null);
   const [galleryIndex, setGalleryIndex] = useState(0);
   const [profileOpen, setProfileOpen] = useState(false);
   const [form,       setForm]   = useState({ ...BLANK_FORM });
@@ -631,6 +634,7 @@ export default function StudentPage() {
                     toggleSave={toggleSave}
                     openApply={openApply}
                     setViewTarget={setViewTarget}
+                    openLandlordProfile={setLandlordProfileTarget}
                   />
                 ))}
               </div>
@@ -805,6 +809,19 @@ export default function StudentPage() {
                 </button>
               </div>
               <p className="text-sm text-muted-foreground flex items-center gap-1"><MapPin className="w-3.5 h-3.5"/>{viewTarget.loc[locale]}</p>
+              <button
+                onClick={() => setLandlordProfileTarget(viewTarget)}
+                className="flex w-full items-center gap-3 rounded-xl border border-white/10 bg-white/5 p-3 text-start transition-all hover:border-emerald-500/30 hover:bg-white/8"
+              >
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/15 text-sm font-bold text-amber-300">
+                  {(viewTarget.landlordName ?? "Landlord").split(" ").filter(Boolean).slice(0, 2).map(part => part[0]).join("").toUpperCase() || "LL"}
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-sm font-semibold">{viewTarget.landlordName ?? "Landlord Profile"}</p>
+                  <p className="text-xs text-muted-foreground">View landlord profile</p>
+                </div>
+                <ChevronRight className="h-4 w-4 text-muted-foreground" />
+              </button>
               <div className="flex gap-4 text-sm text-muted-foreground">
                 <span className="flex items-center gap-1"><Bed className="w-3.5 h-3.5"/>{viewTarget.beds} {t.beds}</span>
                 <span className="flex items-center gap-1"><Bath className="w-3.5 h-3.5"/>{viewTarget.baths} {t.baths}</span>
@@ -835,6 +852,34 @@ export default function StudentPage() {
       </Modal>
 
       {/* ── Profile modal ── */}
+      <Modal open={!!landlordProfileTarget} title="Landlord Profile" onClose={() => setLandlordProfileTarget(null)}>
+        {landlordProfileTarget && (
+          <UserProfileView
+            profile={buildPublicUserProfile("landlord", {
+              name: landlordProfileTarget.landlordName,
+              email: landlordProfileTarget.landlordEmail,
+              city: landlordProfileTarget.city,
+            }, "Landlord")}
+          >
+            <section className="rounded-xl border border-white/10 bg-white/5 p-5 text-sm">
+              <h3 className="text-lg font-semibold">Current Listing</h3>
+              <div className="mt-4">
+                {[
+                  ["Listing", landlordProfileTarget.name[locale]],
+                  ["Location", landlordProfileTarget.loc[locale]],
+                  ["Monthly Rent", `EGP ${landlordProfileTarget.price.toLocaleString()}`],
+                ].map(([k, v]) => (
+                  <div key={k} className="flex justify-between gap-4 border-b border-white/8 py-3 last:border-none">
+                    <span className="text-muted-foreground">{k}</span>
+                    <span className="max-w-[58%] truncate text-right font-semibold">{v}</span>
+                  </div>
+                ))}
+              </div>
+            </section>
+          </UserProfileView>
+        )}
+      </Modal>
+
       <Modal open={profileOpen} title={t.myProfile} onClose={() => setProfileOpen(false)}>
         <div className="space-y-1 text-sm">
           <div className="text-center mb-5">
@@ -888,9 +933,10 @@ interface ListingCardProps {
   toggleSave: (id: number) => void;
   openApply: (l: Listing) => void;
   setViewTarget: (l: Listing) => void;
+  openLandlordProfile: (l: Listing) => void;
 }
 
-function ListingCard({ l, locale, t, appliedIds, saved, toggleSave, openApply, setViewTarget }: ListingCardProps) {
+function ListingCard({ l, locale, t, appliedIds, saved, toggleSave, openApply, setViewTarget, openLandlordProfile }: ListingCardProps) {
   const bg = ACCENT_BG[l.accent] ?? ACCENT_BG.emerald;
   return (
     <div className="glass-card overflow-hidden flex flex-col">
@@ -919,6 +965,13 @@ function ListingCard({ l, locale, t, appliedIds, saved, toggleSave, openApply, s
           <div className="flex-1 min-w-0">
             <p className="font-semibold text-sm leading-snug cursor-pointer hover:text-emerald-400 transition-colors truncate" onClick={() => setViewTarget(l)}>{l.name[locale]}</p>
             <p className="text-xs text-muted-foreground flex items-center gap-1 mt-1"><MapPin className="w-3 h-3 shrink-0"/>{l.loc[locale]}</p>
+            <button
+              type="button"
+              onClick={(e) => { e.stopPropagation(); openLandlordProfile(l); }}
+              className="mt-1 text-xs text-amber-300 transition-colors hover:text-amber-200"
+            >
+              {l.landlordName ? `${l.landlordName} profile` : "Landlord profile"}
+            </button>
           </div>
           <div className="text-right shrink-0">
             <p className="text-emerald-400 font-bold text-sm">EGP {l.price.toLocaleString()}</p>

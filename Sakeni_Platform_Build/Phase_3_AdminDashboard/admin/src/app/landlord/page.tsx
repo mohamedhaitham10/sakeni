@@ -8,6 +8,8 @@ import { ThemeToggle } from "@/components/ThemeToggle";
 import { Modal } from "@/components/Modal";
 import { KYCModal, getAuth, setAuth, AuthUser } from "@/components/KYCModal";
 import { ChatPanel } from "@/components/ChatPanel";
+import { UserProfileView } from "@/components/UserProfileView";
+import { buildPublicUserProfile } from "@/lib/public-profile";
 import { imageFileToDataUrl, isSupportedPhotoUrl } from "@/lib/local-upload";
 
 type Locale = "en" | "ar";
@@ -794,7 +796,7 @@ export default function LandlordPage() {
 
       {/* ── Analytics modal ── */}
       <Modal open={modal?.type==="analytics"} title={t.analyticsTitle} onClose={close}>
-        {modal?.data && (() => {
+        {modal?.type==="analytics" && modal.data && (() => {
           const l = modal.data as Listing;
           const conv = l.views > 0 ? ((l.applicants/l.views)*100).toFixed(1) : "0.0";
           return (
@@ -828,50 +830,42 @@ export default function LandlordPage() {
       </Modal>
 
       {/* ── Applicant detail modal ── */}
-      <Modal open={modal?.type==="applicant"} title={t.applicantDetails} onClose={close}>
-        {modal?.data && (() => {
+      <Modal open={modal?.type==="applicant"} title="Student Profile" onClose={close}>
+        {modal?.type==="applicant" && modal.data && (() => {
           const a = modal.data as Applicant;
           const listing = listings.find(l => l.id === a.listingId);
-          const avatarIsImage = !!a.avatar && (a.avatar.startsWith("data:image/") || /^https?:\/\//.test(a.avatar));
+          const profile = buildPublicUserProfile("student", a, "Student applicant");
           return (
-            <div className="space-y-1 text-sm">
-              <div className="flex items-center gap-3 rounded-xl border border-white/8 bg-white/5 p-3 mb-3">
-                <div className="w-12 h-12 rounded-full bg-indigo-500/15 flex items-center justify-center text-indigo-300 font-bold shrink-0 overflow-hidden">
-                  {avatarIsImage ? <img src={a.avatar} alt={a.name} className="w-full h-full object-cover" /> : (a.avatar || a.name.split(" ").map(n=>n[0]).join("").slice(0,2))}
+            <UserProfileView profile={profile}>
+              <section className="rounded-xl border border-white/10 bg-white/5 p-5 text-sm">
+                <h3 className="text-lg font-semibold">Application Details</h3>
+                <div className="mt-4">
+                  {[
+                    ["Listing", listing?.name ?? "N/A"],
+                    [t.moveIn, a.moveIn],
+                    [t.lease, a.lease],
+                  ].map(([k,v]) => (
+                    <div key={k} className="flex justify-between gap-4 border-b border-white/8 py-3 last:border-none">
+                      <span className="text-muted-foreground">{k}</span>
+                      <span className="max-w-[58%] truncate text-right font-semibold">{v || "N/A"}</span>
+                    </div>
+                  ))}
                 </div>
-                <div className="min-w-0">
-                  <p className="font-bold text-white truncate">{a.name}</p>
-                  <p className="text-xs text-muted-foreground truncate">{a.email ?? "Profile email not shared"}</p>
+                <div className="mt-4 rounded-lg border border-white/8 bg-white/4 p-3">
+                  <span className="mb-1 block text-xs text-muted-foreground">{t.message}</span>
+                  <span className="text-sm italic text-white/75">&quot;{a.message || "No message shared."}&quot;</span>
                 </div>
-              </div>
-              {[
-                ["Listing",      listing?.name ?? ""],
-                [t.university,   a.university],
-                ["Student ID",    a.studentId ?? "—"],
-                ["Year",          a.year ?? "—"],
-                [t.phone,        a.phone],
-                [t.moveIn,       a.moveIn],
-                [t.lease,        a.lease],
-              ].map(([k,v]) => (
-                <div key={k} className="flex justify-between py-2.5 border-b border-white/6">
-                  <span className="text-muted-foreground">{k}</span>
-                  <span className="font-bold">{v}</span>
+                <div className={`mt-4 w-fit rounded-full border px-3 py-1.5 text-xs font-medium ${appCls[a.status]}`}>
+                  {a.status === "pending" ? t.pending : a.status === "approved" ? t.approved : t.declined}
                 </div>
-              ))}
-              <div className="py-2.5 border-b border-white/6">
-                <span className="text-muted-foreground block mb-1">{t.message}</span>
-                <span className="text-white/70 italic text-xs">&quot;{a.message}&quot;</span>
-              </div>
-              <div className={`mt-1 text-xs font-medium px-3 py-1.5 rounded-full border w-fit ${appCls[a.status]}`}>
-                {a.status === "pending" ? t.pending : a.status === "approved" ? t.approved : t.declined}
-              </div>
               {a.status === "pending" && (
                 <div className="flex gap-3 pt-4">
-                  <button onClick={() => setAppStatus(a.id,"approved")} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-semibold transition-all">{t.approve}</button>
-                  <button onClick={() => setAppStatus(a.id,"declined")} className="flex-1 bg-rose-600/80 hover:bg-rose-500 text-white py-2.5 rounded-lg font-semibold transition-all">{t.decline}</button>
+                  <button onClick={() => { setAppStatus(a.id,"approved"); close(); }} className="flex-1 bg-emerald-600 hover:bg-emerald-500 text-white py-2.5 rounded-lg font-semibold transition-all">{t.approve}</button>
+                  <button onClick={() => { setAppStatus(a.id,"declined"); close(); }} className="flex-1 bg-rose-600/80 hover:bg-rose-500 text-white py-2.5 rounded-lg font-semibold transition-all">{t.decline}</button>
                 </div>
               )}
-            </div>
+              </section>
+            </UserProfileView>
           );
         })()}
       </Modal>
